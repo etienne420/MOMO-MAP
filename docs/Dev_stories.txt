@@ -1,0 +1,39 @@
+DEV1 - Comme développeur, je veux intégrer la carte 2D du Cégep Montmorency afin de permettre son affichage dans l’application.
+
+DEV2 - Comme développeur, je veux enregistrer les locaux et leurs coordonnées dans MongoDB afin de pouvoir les rechercher et les afficher sur la carte.
+
+DEV3 - Comme développeur, je veux créer une API de recherche de locaux afin que le client React puisse récupérer les informations nécessaires.
+
+DEV4 - Comme développeur, je veux développer une fonctionnalité de surbrillance des locaux afin de rendre les résultats de recherche visibles sur la carte.
+
+DEV5 - Comme développeur, je veux représenter les points d’intérêt et les connexions entre les locaux afin de permettre le calcul d’itinéraires.
+
+DEV6 - Comme développeur, je veux implanter un algorithme de recherche de chemin afin de calculer un itinéraire efficace entre deux points.
+
+DEV7 - Comme développeur, je veux créer une API de calcul d’itinéraire afin que le client React puisse demander et afficher un chemin.
+
+DEV8 - Comme développeur, je veux développer le formulaire de connexion afin de permettre l’authentification des utilisateurs.
+
+DEV9 - Comme développeur, je veux valider les adresses courriel institutionnelles afin de limiter l’accès aux utilisateurs autorisés.
+
+DEV10 - Comme développeur, je veux chiffrer les mots de passe avant leur enregistrement afin de protéger les comptes utilisateurs.
+
+DEV11 - Comme développeur, je veux créer les modèles de données et les routes du serveur afin de centraliser les informations nécessaires au fonctionnement du système.
+
+DEV12 - Comme développeur, je veux rendre l’interface responsive afin qu’elle fonctionne sur les ordinateurs, tablettes et téléphones intelligents.
+
+DEV13 - Comme développeur, je veux tester les fonctionnalités de recherche, de navigation et d’authentification afin de vérifier leur bon fonctionnement.
+
+DEV14 - Comme développeur, je veux documenter l’installation et l’utilisation du système afin de faciliter sa maintenance et son évolution.
+
+DEV15 - Comme développeur, je veux développer un module de personnalisation de la carte afin de permettre l’ajout de fonctionnalités dans les versions ultérieures.
+
+DEV16 - Comme développeur, je veux gérer les erreurs de communication entre le client et le serveur afin d’afficher des messages informatifs à l’utilisateur.
+
+DEV17 - Comme développeur, je veux optimiser les requêtes de recherche et d’itinéraire afin de respecter les exigences de performance du système.
+
+DEV18 - Comme développeur, je veux mettre en place des tests de validation des données afin de réduire les erreurs lors de l’utilisation de l’application.
+
+DEV19 - Comme développeur, je veux protéger les données personnelles contre les accès non autorisés afin de respecter les exigences de sécurité.
+
+DEV20 - Comme développeur, je veux préparer l’architecture pour de futures fonctionnalités d’intelligence artificielle afin de permettre l’évolution du système.

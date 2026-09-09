@@ -1,0 +1,27 @@
+US1 - Comme utilisateur, je veux consulter la carte interactive du Cégep Montmorency afin de m’orienter facilement dans l’établissement.
+
+US2 - Comme utilisateur, je veux rechercher un local par son numéro afin de trouver rapidement son emplacement.
+
+US3 - Comme utilisateur, je veux voir le local recherché en surbrillance sur la carte afin de le repérer facilement.
+
+US4 - Comme utilisateur, je veux sélectionner un point de départ et une destination afin de calculer un itinéraire.
+
+US5 - Comme utilisateur, je veux connaître le chemin le plus court ou le plus rapide entre deux points afin de me rendre à destination efficacement.
+
+US6 - Comme utilisateur, je veux visualiser l’itinéraire sur la carte afin de suivre le chemin à emprunter.
+
+US7 - Comme utilisateur, je veux utiliser ma position courante comme point de départ afin de calculer un itinéraire vers un local.
+
+US8 - Comme utilisateur, je veux créer un compte avec mon adresse courriel institutionnelle afin d’accéder aux fonctionnalités nécessitant une authentification.
+
+US9 - Comme utilisateur, je veux me connecter à mon compte afin d’accéder à mes fonctionnalités personnalisées.
+
+US10 - Comme utilisateur, je veux personnaliser la visualisation de la carte afin d’adapter l’interface à mes préférences.
+
+US11 - Comme utilisateur, je veux consulter un manuel en ligne afin de comprendre comment utiliser les principales fonctionnalités du système.
+
+US12 - Comme utilisateur, je veux recevoir un message informatif lorsqu’une erreur de serveur survient afin de comprendre que le service est temporairement indisponible.
+
+US13 - Comme utilisateur, je veux que l’application s’adapte à mon appareil afin de pouvoir l’utiliser confortablement sur un ordinateur, une tablette ou un téléphone.
+
+US14 - Comme utilisateur, je veux que mes informations personnelles soient protégées afin de préserver la confidentialité de mon compte.
