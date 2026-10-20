@@ -7,8 +7,8 @@
 
 .input-field__label {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-title);
+  font-weight: 500;
+  color: #1e293b;
   letter-spacing: -0.01em;
   text-align: left;
 }
@@ -27,18 +27,18 @@
 
 .input-field__input {
   width: 100%;
-  padding: 12px 14px;
-  font-size: 14px;
-  color: var(--color-text-title);
-  background-color: var(--color-bg-input);
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  font-size: 14.5px;
+  color: #0f172a;
+  background-color: var(--color-bg-input, #f4f8fa);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .input-field__input::placeholder {
-  color: var(--color-text-subtle);
+  color: #94a3b8;
   font-weight: 400;
 }
 
@@ -47,27 +47,28 @@
 }
 
 .input-field__input:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: var(--shadow-input-focus);
+  background-color: #ffffff;
+  border-color: var(--color-primary, #1e6b37);
+  box-shadow: 0 0 0 3px rgba(30, 107, 55, 0.14);
 }
 
 .input-field__input--has-right {
-  padding-right: 42px;
+  padding-right: 44px;
 }
 
 .input-field__right-element {
   position: absolute;
-  right: 12px;
+  right: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
+  color: #64748b;
 }
 
 /* Error States */
 .input-field--has-error .input-field__input {
   border-color: var(--color-error);
-  background-color: var(--color-error-bg);
+  background-color: #fff5f5;
 }
 
 .input-field--has-error .input-field__input:focus {

@@ -2,14 +2,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 10px;
+  padding: 13px 24px;
   font-size: 14.5px;
   font-weight: 600;
-  border-radius: var(--radius-md);
+  border-radius: 9999px; /* Modern pill shape */
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   line-height: 1.4;
 }
@@ -19,25 +19,43 @@
   outline-offset: 2px;
 }
 
-/* Primary Variant */
-.btn--primary {
-  background-color: var(--color-primary);
-  color: var(--color-text-white);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+/* Primary / Dark Variant (Matching Reference Image) */
+.btn--primary,
+.btn--dark {
+  background-color: var(--color-dark-btn, #0f172a);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
 }
 
-.btn--primary:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+.btn--primary:hover:not(:disabled),
+.btn--dark:hover:not(:disabled) {
+  background-color: var(--color-primary, #1e6b37);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30, 107, 55, 0.25);
+  box-shadow: 0 6px 18px rgba(30, 107, 55, 0.3);
 }
 
-.btn--primary:active:not(:disabled) {
-  background-color: var(--color-primary-active);
+.btn--primary:active:not(:disabled),
+.btn--dark:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.btn--primary:disabled {
+/* Outline Variant for Social Logins (Google, Facebook) */
+.btn--outline {
+  background-color: #ffffff;
+  color: #1e293b;
+  border-color: #e2e8f0;
+  font-weight: 500;
+  padding: 11px 20px;
+}
+
+.btn--outline:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
@@ -61,6 +79,13 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.btn__icon-left {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .btn__icon-right {

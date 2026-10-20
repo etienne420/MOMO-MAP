@@ -1,22 +1,16 @@
-import React from 'react'
+import React, { useState } from 'react'
 import AuthHero from '../../components/auth/AuthHero/AuthHero'
 import AuthHeader from '../../components/auth/AuthHeader/AuthHeader'
 import LoginCard from '../../components/auth/LoginCard/LoginCard'
 import './LoginPage.css'
 
 export default function LoginPage({ onLoginSuccess }) {
+  const [authMode, setAuthMode] = useState('signup') // Starts in 'signup' mode as requested
+
   const handleLoginSuccess = (formData) => {
     if (onLoginSuccess) {
       onLoginSuccess(formData)
     }
-  }
-
-  const handleForgotPassword = () => {
-    alert('Fonctionnalité de réinitialisation du mot de passe bientôt disponible.')
-  }
-
-  const handleCreateAccount = () => {
-    alert("Redirection vers la page d'inscription institutionnelle.")
   }
 
   return (
@@ -27,14 +21,14 @@ export default function LoginPage({ onLoginSuccess }) {
           <AuthHero />
         </section>
 
-        {/* Right Column: Branding Header and Login Card */}
-        <section className="login-page__form-section" aria-label="Connexion à votre compte">
+        {/* Right Column: Branding Header and Auth Card */}
+        <section className="login-page__form-section" aria-label="Authentification">
           <div className="login-page__form-wrapper">
             <AuthHeader />
             <LoginCard
+              mode={authMode}
+              onModeChange={setAuthMode}
               onLoginSuccess={handleLoginSuccess}
-              onForgotPassword={handleForgotPassword}
-              onCreateAccount={handleCreateAccount}
             />
           </div>
         </section>

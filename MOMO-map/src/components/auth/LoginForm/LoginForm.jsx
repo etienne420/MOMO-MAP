@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import InputField from '../../common/InputField/InputField'
-import Checkbox from '../../common/Checkbox/Checkbox'
 import Button from '../../common/Button/Button'
-import { BRANDING } from '../../../constants/branding'
-import { validateLoginForm } from '../../../utils/validation'
+import {
+  validateSignInForm,
+  validateSignUpForm,
+} from '../../../utils/validation'
 import './LoginForm.css'
 
 function EyeIcon() {
@@ -24,20 +25,15 @@ function EyeOffIcon() {
   )
 }
 
-function ArrowRightIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  )
-}
-
-export default function LoginForm({ onSubmitSuccess, onForgotPassword }) {
+export default function LoginForm({
+  mode = 'signup',
+  onModeChange,
+  onSubmitSuccess,
+}) {
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
-    rememberMe: false,
   })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
@@ -45,13 +41,12 @@ export default function LoginForm({ onSubmitSuccess, onForgotPassword }) {
   const [authFeedback, setAuthFeedback] = useState(null)
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }))
 
-    // Clear field-level error on change
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }))
     }
@@ -63,29 +58,39 @@ export default function LoginForm({ onSubmitSuccess, onForgotPassword }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const { isValid, errors: validationErrors } = validateLoginForm(formData)
-    if (!isValid) {
-      setErrors(validationErrors)
+    const validationResult =
+      mode === 'signup'
+        ? validateSignUpForm(formData)
+        : validateSignInForm(formData)
+
+    if (!validationResult.isValid) {
+      setErrors(validationResult.errors)
       return
     }
 
     setIsLoading(true)
     setAuthFeedback(null)
 
-    // Simulate login API call with realistic latency
     try {
       await new Promise((resolve) => setTimeout(resolve, 600))
+      
+      const message =
+        mode === 'signup'
+          ? 'Compte créé avec succès ! Bienvenue sur MOMO-MAP.'
+          : 'Connexion réussie ! Bienvenue sur MOMO-MAP.'
+
       setAuthFeedback({
         type: 'success',
-        message: 'Connexion réussie ! Bienvenue sur MOMO-MAP.',
+        message,
       })
+
       if (onSubmitSuccess) {
         onSubmitSuccess(formData)
       }
     } catch {
       setAuthFeedback({
         type: 'error',
-        message: 'Une erreur est survenue lors de la connexion.',
+        message: 'Une erreur est survenue. Veuillez réessayer.',
       })
     } finally {
       setIsLoading(false)
@@ -93,82 +98,163 @@ export default function LoginForm({ onSubmitSuccess, onForgotPassword }) {
   }
 
   return (
-    <form className="login-form" onSubmit={handleSubmit} noValidate>
+    <div className="modern-auth-form">
       {authFeedback && (
         <div
-          className={`login-form__alert login-form__alert--${authFeedback.type}`}
+          className={`modern-auth-form__alert modern-auth-form__alert--${authFeedback.type}`}
           role="alert"
         >
           {authFeedback.message}
         </div>
       )}
 
-      <div className="login-form__fields">
-        <InputField
-          id="login-email"
-          name="email"
-          type="email"
-          label={BRANDING.emailLabel}
-          placeholder={BRANDING.emailPlaceholder}
-          value={formData.email}
-          onChange={handleChange}
-          error={errors.email}
-          autoComplete="email"
-          required
-        />
+      <form onSubmit={handleSubmit} noValidate>
+        {/* ===================== SIGN UP MODE ===================== */}
+        {mode === 'signup' && (
+          <>
+            <div className="modern-auth-form__fields">
+              <InputField
+                id="signup-username"
+                name="username"
+                type="text"
+                label="Username"
+                value={formData.username}
+                onChange={handleChange}
+                error={errors.username}
+                autoComplete="username"
+                required
+              />
 
-        <InputField
-          id="login-password"
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          label={BRANDING.passwordLabel}
-          placeholder={BRANDING.passwordPlaceholder}
-          value={formData.password}
-          onChange={handleChange}
-          error={errors.password}
-          autoComplete="current-password"
-          required
-          rightElement={
-            <button
-              type="button"
-              className="login-form__toggle-password"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              <InputField
+                id="signup-email"
+                name="email"
+                type="email"
+                label="Email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+                autoComplete="email"
+                required
+              />
+
+              <InputField
+                id="signup-password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                label="Password"
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
+                autoComplete="new-password"
+                required
+                rightElement={
+                  <button
+                    type="button"
+                    className="modern-auth-form__toggle-pw"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                }
+              />
+            </div>
+
+            <Button
+              type="submit"
+              variant="dark"
+              fullWidth
+              isLoading={isLoading}
+              className="modern-auth-form__submit-btn"
             >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-            </button>
-          }
-        />
-      </div>
+              Sign up
+            </Button>
 
-      <div className="login-form__options-row">
-        <Checkbox
-          id="remember-me"
-          name="rememberMe"
-          checked={formData.rememberMe}
-          onChange={handleChange}
-          label={BRANDING.rememberMeLabel}
-        />
+            <div className="modern-auth-form__footer">
+              <span className="modern-auth-form__footer-text">
+                You have an account?{' '}
+                <button
+                  type="button"
+                  className="modern-auth-form__switch-link"
+                  onClick={() => onModeChange('signin')}
+                >
+                  Sign in
+                </button>
+              </span>
+            </div>
 
-        <button
-          type="button"
-          onClick={onForgotPassword}
-          className="login-form__forgot-link"
-        >
-          {BRANDING.forgotPasswordText}
-        </button>
-      </div>
+            <p className="auth-terms-notice">
+              By sign up, you're agreeing to our{' '}
+              <a href="#terms" onClick={(e) => e.preventDefault()}>Terms of Use</a>,{' '}
+              <a href="#privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a>
+            </p>
+          </>
+        )}
 
-      <Button
-        type="submit"
-        variant="primary"
-        fullWidth
-        isLoading={isLoading}
-        iconRight={<ArrowRightIcon />}
-        className="login-form__submit-btn"
-      >
-        {BRANDING.submitButtonText}
-      </Button>
-    </form>
+        {/* ===================== SIGN IN MODE ===================== */}
+        {mode === 'signin' && (
+          <>
+            <div className="modern-auth-form__fields">
+              <InputField
+                id="signin-username"
+                name="username"
+                type="text"
+                label="Username"
+                value={formData.username}
+                onChange={handleChange}
+                error={errors.username}
+                autoComplete="username"
+                required
+              />
+
+              <InputField
+                id="signin-password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                label="Password"
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
+                autoComplete="current-password"
+                required
+                rightElement={
+                  <button
+                    type="button"
+                    className="modern-auth-form__toggle-pw"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                }
+              />
+            </div>
+
+            <Button
+              type="submit"
+              variant="dark"
+              fullWidth
+              isLoading={isLoading}
+              className="modern-auth-form__submit-btn"
+            >
+              Sign in
+            </Button>
+
+            <div className="modern-auth-form__footer">
+              <span className="modern-auth-form__footer-text">
+                You don't have an account yet?{' '}
+                <button
+                  type="button"
+                  className="modern-auth-form__switch-link"
+                  onClick={() => onModeChange('signup')}
+                >
+                  Sign up
+                </button>
+              </span>
+            </div>
+          </>
+        )}
+      </form>
+    </div>
   )
 }

@@ -8,6 +8,7 @@ export default function Button({
   fullWidth = false,
   disabled = false,
   isLoading = false,
+  iconLeft,
   iconRight,
   onClick,
   className = '',
@@ -25,6 +26,7 @@ export default function Button({
         <span className="btn__spinner" aria-hidden="true" />
       ) : (
         <>
+          {iconLeft && <span className="btn__icon-left">{iconLeft}</span>}
           <span className="btn__text">{children}</span>
           {iconRight && <span className="btn__icon-right">{iconRight}</span>}
         </>

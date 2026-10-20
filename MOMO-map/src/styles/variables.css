@@ -9,8 +9,10 @@
   --color-accent-blue-light: #3b82f6;
 
   --color-bg-page: #fbfbfd;
-  --color-bg-card: #ffffff;
-  --color-bg-input: #ffffff;
+  --color-bg-card: transparent;
+  --color-bg-input: #f5f9fc;
+  --color-dark-btn: #0f172a;
+  --color-dark-btn-hover: #1e6b37;
 
   --color-text-title: #0f172a;
   --color-text-body: #475569;
@@ -29,6 +31,7 @@
   /* Typography */
   --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-family-title: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-pacifico: 'Pacifico', cursive;
 
   /* Shadows */
   --shadow-card: 0 12px 35px -8px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
