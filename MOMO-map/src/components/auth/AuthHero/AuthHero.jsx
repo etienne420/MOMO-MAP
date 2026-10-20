@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import hero1 from '../../../assets/images/hero/hero-1.jpg'
 import hero2 from '../../../assets/images/hero/hero-2.jpg'
 import hero3 from '../../../assets/images/hero/hero-3.jpg'
@@ -13,6 +13,7 @@ const HERO_IMAGES = [
 ]
 
 const SLIDE_INTERVAL = 5000 // 5 seconds per slide
+const PROXIMITY_THRESHOLD = 65 // Pixels distance to trigger hover reaction
 
 export default function AuthHero({
   images = HERO_IMAGES,
@@ -20,6 +21,8 @@ export default function AuthHero({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
+  const [nearestIndex, setNearestIndex] = useState(null)
+  const dotRefs = useRef([])
 
   const handleNext = useCallback(() => {
     if (images.length === 0) return
@@ -28,6 +31,44 @@ export default function AuthHero({
 
   const goToSlide = (idx) => {
     setCurrentIndex(idx)
+  }
+
+  // Handle cursor proximity near dots
+  const handleZoneMouseMove = (e) => {
+    if (!dotRefs.current || dotRefs.current.length === 0) return
+
+    let closestIdx = null
+    let minDistance = Infinity
+
+    dotRefs.current.forEach((el, idx) => {
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      const dist = Math.hypot(e.clientX - centerX, e.clientY - centerY)
+
+      if (dist < minDistance) {
+        minDistance = dist
+        closestIdx = idx
+      }
+    })
+
+    // If within proximity threshold, react like hover
+    if (minDistance <= PROXIMITY_THRESHOLD) {
+      setNearestIndex(closestIdx)
+    } else {
+      setNearestIndex(null)
+    }
+  }
+
+  const handleZoneMouseLeave = () => {
+    setNearestIndex(null)
+  }
+
+  const handleZoneClick = () => {
+    if (nearestIndex !== null && nearestIndex !== currentIndex) {
+      goToSlide(nearestIndex)
+    }
   }
 
   // Auto-advance loop (pauses when hovered)
@@ -62,7 +103,10 @@ export default function AuthHero({
     <div
       className="auth-hero"
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => {
+        setIsHovered(false)
+        setNearestIndex(null)
+      }}
       role="region"
       aria-label="Galerie photos du campus"
     >
@@ -98,26 +142,41 @@ export default function AuthHero({
           {/* Subtle Ambient Vignette / Scrim */}
           <div className="auth-hero__scrim" aria-hidden="true" />
 
-          {/* Modern Navigation Dots at the Bottom */}
+          {/* Responsive & Magnetic Navigation Dots (no enclosing card) */}
           {images.length > 1 && (
-            <nav
-              className="auth-hero__dots-container"
-              aria-label="Navigation des photos"
+            <div
+              className="auth-hero__dots-zone"
+              onMouseMove={handleZoneMouseMove}
+              onMouseLeave={handleZoneMouseLeave}
+              onClick={handleZoneClick}
+              role="region"
+              aria-label="Zone de navigation des photos"
             >
-              {images.map((item, idx) => {
-                const isActive = idx === currentIndex
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => goToSlide(idx)}
-                    className={`auth-hero__dot ${isActive ? 'auth-hero__dot--active' : ''}`}
-                    aria-label={`Aller à la photo ${idx + 1}`}
-                    aria-current={isActive ? 'true' : 'false'}
-                  />
-                )
-              })}
-            </nav>
+              <nav
+                className="auth-hero__dots-container"
+                aria-label="Navigation des photos"
+              >
+                {images.map((item, idx) => {
+                  const isActive = idx === currentIndex
+                  const isNear = nearestIndex === idx && !isActive
+
+                  return (
+                    <button
+                      key={item.id}
+                      ref={(el) => (dotRefs.current[idx] = el)}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        goToSlide(idx)
+                      }}
+                      className={`auth-hero__dot ${isActive ? 'auth-hero__dot--active' : ''} ${isNear ? 'auth-hero__dot--near' : ''}`}
+                      aria-label={`Aller à la photo ${idx + 1}`}
+                      aria-current={isActive ? 'true' : 'false'}
+                    />
+                  )
+                })}
+              </nav>
+            </div>
           )}
         </div>
       </div>
