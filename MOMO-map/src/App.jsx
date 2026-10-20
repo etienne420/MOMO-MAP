@@ -1,11 +1,8 @@
+import LoginPage from './pages/LoginPage/LoginPage'
 import './App.css'
 
 function App() {
-  return (
-    <div className="app">
-      <h1>MOMO-Map</h1>
-    </div>
-  )
+  return <LoginPage />
 }
 
 export default App

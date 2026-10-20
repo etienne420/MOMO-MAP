@@ -1,0 +1,59 @@
+:root {
+  /* Colors */
+  --color-primary: #1e6b37;
+  --color-primary-hover: #17562c;
+  --color-primary-active: #124322;
+  --color-primary-light: #e8f5ec;
+
+  --color-accent-blue: #2563eb;
+  --color-accent-blue-light: #3b82f6;
+
+  --color-bg-page: #fbfbfd;
+  --color-bg-card: #ffffff;
+  --color-bg-input: #ffffff;
+
+  --color-text-title: #0f172a;
+  --color-text-body: #475569;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+  --color-text-white: #ffffff;
+
+  --color-border-input: #e2e8f0;
+  --color-border-focus: #1e6b37;
+  --color-border-card: rgba(226, 232, 240, 0.8);
+
+  --color-error: #ef4444;
+  --color-error-bg: #fef2f2;
+  --color-success: #10b981;
+
+  /* Typography */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-title: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Shadows */
+  --shadow-card: 0 12px 35px -8px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  --shadow-hero: 0 24px 48px -12px rgba(15, 23, 42, 0.18);
+  --shadow-button: 0 4px 14px rgba(30, 107, 55, 0.3);
+  --shadow-input-focus: 0 0 0 3px rgba(30, 107, 55, 0.15);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-hero: 32px;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
