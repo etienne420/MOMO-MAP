@@ -7,7 +7,11 @@ import {
 } from '../../../utils/validation'
 import './LoginForm.css'
 
-const isDevMode = String(import.meta.env.MODE_DEV) === '1'
+const HARDCODED_USER = {
+  username: 'test',
+  email: 'test',
+  password: 'test',
+}
 
 function EyeIcon() {
   return (
@@ -33,9 +37,9 @@ export default function LoginForm({
   onSubmitSuccess,
 }) {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
+    username: 'test',
+    email: 'test',
+    password: 'test',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
@@ -60,29 +64,45 @@ export default function LoginForm({
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // If MODE_DEV is 1 in .env, ignore all validation checks
-    if (!isDevMode) {
-      const validationResult =
-        mode === 'signup'
-          ? validateSignUpForm(formData)
-          : validateSignInForm(formData)
+    const validationResult =
+      mode === 'signup'
+        ? validateSignUpForm(formData)
+        : validateSignInForm(formData)
 
-      if (!validationResult.isValid) {
-        setErrors(validationResult.errors)
-        return
-      }
+    if (!validationResult.isValid) {
+      setErrors(validationResult.errors)
+      return
     }
 
     setIsLoading(true)
     setAuthFeedback(null)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, isDevMode ? 150 : 500))
+      await new Promise((resolve) => setTimeout(resolve, 300))
+
+      if (mode === 'signin') {
+        const cleanUser = formData.username.trim().toLowerCase()
+        const cleanPass = formData.password
+
+        const isUserMatch =
+          cleanUser === HARDCODED_USER.username ||
+          cleanUser === HARDCODED_USER.email ||
+          cleanUser === 'test@cmontmorency.qc.ca'
+        const isPassMatch = cleanPass === HARDCODED_USER.password
+
+        if (!isUserMatch || !isPassMatch) {
+          setAuthFeedback({
+            type: 'error',
+            message: "Identifiants invalides. Utilisez 'test' comme nom d'utilisateur et mot de passe.",
+          })
+          return
+        }
+      }
 
       const submittedData = {
-        username: formData.username || (isDevMode ? 'dev_user' : ''),
-        email: formData.email || (isDevMode ? 'dev@cmontmorency.qc.ca' : ''),
-        password: formData.password || (isDevMode ? 'devpass123' : ''),
+        username: formData.username.trim() || 'test',
+        email: formData.email.trim() || 'test',
+        password: formData.password || 'test',
       }
       
       const message =
@@ -130,23 +150,25 @@ export default function LoginForm({
                 name="username"
                 type="text"
                 label="Username"
+                placeholder="test"
                 value={formData.username}
                 onChange={handleChange}
                 error={errors.username}
                 autoComplete="username"
-                required={!isDevMode}
+                required
               />
 
               <InputField
                 id="signup-email"
                 name="email"
-                type="email"
+                type="text"
                 label="Email"
+                placeholder="test"
                 value={formData.email}
                 onChange={handleChange}
                 error={errors.email}
                 autoComplete="email"
-                required={!isDevMode}
+                required
               />
 
               <InputField
@@ -154,11 +176,12 @@ export default function LoginForm({
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 label="Password"
+                placeholder="test"
                 value={formData.password}
                 onChange={handleChange}
                 error={errors.password}
                 autoComplete="new-password"
-                required={!isDevMode}
+                required
                 rightElement={
                   <button
                     type="button"
@@ -212,11 +235,12 @@ export default function LoginForm({
                 name="username"
                 type="text"
                 label="Username"
+                placeholder="test"
                 value={formData.username}
                 onChange={handleChange}
                 error={errors.username}
                 autoComplete="username"
-                required={!isDevMode}
+                required
               />
 
               <InputField
@@ -224,11 +248,12 @@ export default function LoginForm({
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 label="Password"
+                placeholder="test"
                 value={formData.password}
                 onChange={handleChange}
                 error={errors.password}
                 autoComplete="current-password"
-                required={!isDevMode}
+                required
                 rightElement={
                   <button
                     type="button"
