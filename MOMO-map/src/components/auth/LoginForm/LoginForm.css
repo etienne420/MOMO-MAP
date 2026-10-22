@@ -72,6 +72,8 @@
   color: var(--color-primary, #1e6b37);
 }
 
+
+
 /* Alerts */
 .modern-auth-form__alert {
   padding: 12px 14px;

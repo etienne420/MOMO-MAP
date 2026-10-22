@@ -7,6 +7,8 @@ import {
 } from '../../../utils/validation'
 import './LoginForm.css'
 
+const isDevMode = String(import.meta.env.MODE_DEV) === '1'
+
 function EyeIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -58,21 +60,30 @@ export default function LoginForm({
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const validationResult =
-      mode === 'signup'
-        ? validateSignUpForm(formData)
-        : validateSignInForm(formData)
+    // If MODE_DEV is 1 in .env, ignore all validation checks
+    if (!isDevMode) {
+      const validationResult =
+        mode === 'signup'
+          ? validateSignUpForm(formData)
+          : validateSignInForm(formData)
 
-    if (!validationResult.isValid) {
-      setErrors(validationResult.errors)
-      return
+      if (!validationResult.isValid) {
+        setErrors(validationResult.errors)
+        return
+      }
     }
 
     setIsLoading(true)
     setAuthFeedback(null)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600))
+      await new Promise((resolve) => setTimeout(resolve, isDevMode ? 150 : 500))
+
+      const submittedData = {
+        username: formData.username || (isDevMode ? 'dev_user' : ''),
+        email: formData.email || (isDevMode ? 'dev@cmontmorency.qc.ca' : ''),
+        password: formData.password || (isDevMode ? 'devpass123' : ''),
+      }
       
       const message =
         mode === 'signup'
@@ -85,7 +96,7 @@ export default function LoginForm({
       })
 
       if (onSubmitSuccess) {
-        onSubmitSuccess(formData)
+        onSubmitSuccess(submittedData)
       }
     } catch {
       setAuthFeedback({
@@ -99,6 +110,7 @@ export default function LoginForm({
 
   return (
     <div className="modern-auth-form">
+
       {authFeedback && (
         <div
           className={`modern-auth-form__alert modern-auth-form__alert--${authFeedback.type}`}
@@ -122,7 +134,7 @@ export default function LoginForm({
                 onChange={handleChange}
                 error={errors.username}
                 autoComplete="username"
-                required
+                required={!isDevMode}
               />
 
               <InputField
@@ -134,7 +146,7 @@ export default function LoginForm({
                 onChange={handleChange}
                 error={errors.email}
                 autoComplete="email"
-                required
+                required={!isDevMode}
               />
 
               <InputField
@@ -146,7 +158,7 @@ export default function LoginForm({
                 onChange={handleChange}
                 error={errors.password}
                 autoComplete="new-password"
-                required
+                required={!isDevMode}
                 rightElement={
                   <button
                     type="button"
@@ -204,7 +216,7 @@ export default function LoginForm({
                 onChange={handleChange}
                 error={errors.username}
                 autoComplete="username"
-                required
+                required={!isDevMode}
               />
 
               <InputField
@@ -216,7 +228,7 @@ export default function LoginForm({
                 onChange={handleChange}
                 error={errors.password}
                 autoComplete="current-password"
-                required
+                required={!isDevMode}
                 rightElement={
                   <button
                     type="button"
