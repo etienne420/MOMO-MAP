@@ -21,6 +21,19 @@ html, body {
   flex-direction: column;
 }
 
+/* ajustement responsif */
+@media (min-width: 768px) {
+  #root {
+    padding: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  #root {
+    padding: 60px;
+  }
+}
+
 /* Subtle dot grid pattern matching Figma design */
 .bg-dot-pattern {
   background-color: var(--color-bg-page);
