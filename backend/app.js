@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 const MONGODB_URI =
   process.env.MONGODB_URI ||
-  "mongodb+srv://All-user:Momo-Map2026@momo-map.2oegp3l.mongodb.net/";
+  "mongodb+srv://All-user:Momo-Map2026@momo-map.2oegp3l.mongodb.net/momo_map_db?retryWrites=true&w=majority";
 
 // Connextion à MongoDB
 await connectDB(MONGODB_URI);

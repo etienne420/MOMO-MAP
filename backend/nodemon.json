@@ -1,6 +1,6 @@
 {
   "env": {
     "PORT": "5000",
-    "MONGODB_URI": "mongodb+srv://All-user:Momo-Map2026@momo-map.2oegp3l.mongodb.net/"
+    "MONGODB_URI": "mongodb+srv://All-user:Momo-Map2026@momo-map.2oegp3l.mongodb.net/momo_map_db?retryWrites=true&w=majority"
   }
 }

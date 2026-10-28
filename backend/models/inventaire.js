@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const inventaireSchema = new mongoose.Schema({
   utilisateurid: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Users",
+    ref: "User",
     required: true,
     unique: true,
   },
