@@ -16,7 +16,7 @@ DEV8 - Comme développeur, je veux développer le formulaire de connexion afin d
 
 DEV9 - Comme développeur, je veux valider les adresses courriel institutionnelles afin de limiter l’accès aux utilisateurs autorisés.
 
-DEV10 - Comme développeur, je veux chiffrer les mots de passe avant leur enregistrement afin de protéger les comptes utilisateurs.
+DEV10 - Comme développeur, je veux hacher les mots de passe côté serveur avec un algorithme dédié tel qu’Argon2id avant leur enregistrement afin de protéger les comptes utilisateurs.
 
 DEV11 - Comme développeur, je veux créer les modèles de données et les routes du serveur afin de centraliser les informations nécessaires au fonctionnement du système.
 

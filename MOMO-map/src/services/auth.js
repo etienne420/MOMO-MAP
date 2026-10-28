@@ -1,6 +1,23 @@
 const SESSION_TOKEN_KEY = 'momo-map.access-token'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim()
 
+function getTokenClaims(token) {
+  const payload = token.split('.')[1]
+  const base64Payload = payload.replace(/-/g, '+').replace(/_/g, '/')
+  const paddedPayload =
+    base64Payload + '='.repeat((4 - (base64Payload.length % 4)) % 4)
+
+  try {
+    const claims = JSON.parse(window.atob(paddedPayload))
+    if (!claims || typeof claims !== 'object' || Array.isArray(claims)) {
+      throw new Error()
+    }
+    return claims
+  } catch {
+    throw new Error('Le JWT retourné par le serveur est invalide.')
+  }
+}
+
 function getApiUrl(path) {
   if (!API_BASE_URL) {
     throw new Error(
@@ -12,20 +29,11 @@ function getApiUrl(path) {
 }
 
 function getTokenExpiration(token) {
-  const payload = token.split('.')[1]
-  const base64Payload = payload.replace(/-/g, '+').replace(/_/g, '/')
-  const paddedPayload =
-    base64Payload + '='.repeat((4 - (base64Payload.length % 4)) % 4)
-
-  try {
-    const claims = JSON.parse(window.atob(paddedPayload))
-    if (!Number.isFinite(claims.exp)) {
-      throw new Error()
-    }
-    return claims.exp * 1000
-  } catch {
+  const expiration = getTokenClaims(token).exp
+  if (!Number.isFinite(expiration)) {
     throw new Error('Le JWT retourné par le serveur est invalide ou sans expiration.')
   }
+  return expiration * 1000
 }
 
 async function requestAuth(path, credentials) {
@@ -116,6 +124,23 @@ export function getAuthToken() {
 
   clearAuthSession()
   return null
+}
+
+export function getSessionRole() {
+  const token = getAuthToken()
+  if (!token) {
+    return null
+  }
+
+  const role = getTokenClaims(token).role
+  if (typeof role !== 'string') {
+    return null
+  }
+
+  const normalizedRole = role.trim().toLowerCase()
+  return normalizedRole === 'admin' || normalizedRole === 'user'
+    ? normalizedRole
+    : null
 }
 
 export function clearAuthSession() {

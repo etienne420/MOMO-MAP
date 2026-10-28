@@ -12,8 +12,9 @@ les identifiants, enregistrer les comptes et signer les jetons.
    envoie les champs `username`, `email` et `password` à l’inscription, puis
    `username` et `password` à la connexion.
 4. Chaque route doit retourner un objet JSON contenant `token` ou `accessToken`
-   (un JWT signé avec une date d’expiration `exp`). Les erreurs peuvent être
-   retournées dans un champ `message` ou `error`.
+   (un JWT signé avec une date d’expiration `exp` et une revendication `role`
+   valant `user` ou `admin`). Les erreurs peuvent être retournées dans un champ
+   `message` ou `error`.
 
 Le jeton reçu est conservé dans `sessionStorage` pour l’onglet courant et supprimé
 à la déconnexion. L’inscription vérifie aussi le format du courriel institutionnel
@@ -22,6 +23,17 @@ de sécurité : une vérification côté navigateur peut être contournée. N’
 de mot de passe vers un service tiers et ne signez jamais de JWT dans le client.
 Le client lit uniquement la date d’expiration du JWT pour fermer une session
 expirée ; il ne valide pas sa signature, ce qui doit rester la responsabilité du serveur.
+Le rôle décodé du JWT sert uniquement à afficher le rôle de la session dans
+l’interface. Le serveur doit attribuer le rôle lors de la création du compte,
+vérifier le jeton et autoriser chaque opération protégée. Ne faites jamais confiance
+au rôle lu côté client pour protéger une route ou une donnée.
+
+Le hachage des mots de passe doit être fait exclusivement par le serveur avant leur
+enregistrement, avec un algorithme dédié aux mots de passe tel qu’Argon2id et un sel
+unique géré par la bibliothèque. À la connexion, le serveur vérifie le mot de passe
+avec cette même bibliothèque. Ne stockez jamais les mots de passe en clair et ne les
+pré-hachez pas dans le client : un hachage client réutilisable pourrait servir de
+mot de passe de remplacement. L’API doit être servie en HTTPS en production.
 
 ## React + Vite
 

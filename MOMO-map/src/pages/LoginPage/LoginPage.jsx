@@ -3,17 +3,23 @@ import AuthHero from '../../components/auth/AuthHero/AuthHero'
 import AuthHeader from '../../components/auth/AuthHeader/AuthHeader'
 import LoginCard from '../../components/auth/LoginCard/LoginCard'
 import Button from '../../components/common/Button/Button'
-import { clearAuthSession, getAuthToken } from '../../services/auth'
+import {
+  clearAuthSession,
+  getAuthToken,
+  getSessionRole,
+} from '../../services/auth'
 import './LoginPage.css'
 
 export default function LoginPage({ onLoginSuccess }) {
   const [authMode, setAuthMode] = useState('signup')
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => Boolean(getAuthToken()),
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    Boolean(getAuthToken()),
   )
+  const [sessionRole, setSessionRole] = useState(() => getSessionRole())
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true)
+    setSessionRole(getSessionRole())
     if (onLoginSuccess) {
       onLoginSuccess()
     }
@@ -22,6 +28,7 @@ export default function LoginPage({ onLoginSuccess }) {
   const handleLogout = () => {
     clearAuthSession()
     setIsAuthenticated(false)
+    setSessionRole(null)
   }
 
   return (
@@ -39,6 +46,14 @@ export default function LoginPage({ onLoginSuccess }) {
             {isAuthenticated ? (
               <div className="login-page__session" role="status">
                 <p>Votre session MOMO-MAP est active.</p>
+                <p className="login-page__role">
+                  Rôle :{' '}
+                  {sessionRole === 'admin'
+                    ? 'Administrateur'
+                    : sessionRole === 'user'
+                      ? 'Utilisateur'
+                      : 'non défini'}
+                </p>
                 <Button variant="dark" fullWidth onClick={handleLogout}>
                   Sign out
                 </Button>

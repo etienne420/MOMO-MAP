@@ -51,6 +51,12 @@
   color: #334155;
 }
 
+.login-page__session .login-page__role {
+  margin-top: -12px;
+  font-size: 14px;
+  color: #64748b;
+}
+
 @media (max-width: 1080px) {
   .login-page__container {
     gap: 40px;
