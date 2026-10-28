@@ -5,6 +5,7 @@ import {
   validateSignInForm,
   validateSignUpForm,
 } from '../../../utils/validation'
+import { signIn, signUp } from '../../../services/auth'
 import './LoginForm.css'
 
 function EyeIcon() {
@@ -72,25 +73,34 @@ export default function LoginForm({
     setAuthFeedback(null)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600))
-      
-      const message =
+      const credentials =
         mode === 'signup'
-          ? 'Compte créé avec succès ! Bienvenue sur MOMO-MAP.'
-          : 'Connexion réussie ! Bienvenue sur MOMO-MAP.'
+          ? {
+              username: formData.username.trim(),
+              email: formData.email.trim(),
+              password: formData.password,
+            }
+          : {
+              username: formData.username.trim(),
+              password: formData.password,
+            }
 
-      setAuthFeedback({
-        type: 'success',
-        message,
-      })
+      if (mode === 'signup') {
+        await signUp(credentials)
+      } else {
+        await signIn(credentials)
+      }
 
       if (onSubmitSuccess) {
-        onSubmitSuccess(formData)
+        onSubmitSuccess()
       }
-    } catch {
+    } catch (error) {
       setAuthFeedback({
         type: 'error',
-        message: 'Une erreur est survenue. Veuillez réessayer.',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Une erreur inconnue est survenue. Veuillez réessayer.',
       })
     } finally {
       setIsLoading(false)
@@ -176,7 +186,10 @@ export default function LoginForm({
                 <button
                   type="button"
                   className="modern-auth-form__switch-link"
-                  onClick={() => onModeChange('signin')}
+                  onClick={() => {
+                    setAuthFeedback(null)
+                    onModeChange('signin')
+                  }}
                 >
                   Sign in
                 </button>
@@ -246,7 +259,10 @@ export default function LoginForm({
                 <button
                   type="button"
                   className="modern-auth-form__switch-link"
-                  onClick={() => onModeChange('signup')}
+                  onClick={() => {
+                    setAuthFeedback(null)
+                    onModeChange('signup')
+                  }}
                 >
                   Sign up
                 </button>

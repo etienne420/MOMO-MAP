@@ -2,15 +2,26 @@ import React, { useState } from 'react'
 import AuthHero from '../../components/auth/AuthHero/AuthHero'
 import AuthHeader from '../../components/auth/AuthHeader/AuthHeader'
 import LoginCard from '../../components/auth/LoginCard/LoginCard'
+import Button from '../../components/common/Button/Button'
+import { clearAuthSession, getAuthToken } from '../../services/auth'
 import './LoginPage.css'
 
 export default function LoginPage({ onLoginSuccess }) {
-  const [authMode, setAuthMode] = useState('signup') // Starts in 'signup' mode as requested
+  const [authMode, setAuthMode] = useState('signup')
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => Boolean(getAuthToken()),
+  )
 
-  const handleLoginSuccess = (formData) => {
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true)
     if (onLoginSuccess) {
-      onLoginSuccess(formData)
+      onLoginSuccess()
     }
+  }
+
+  const handleLogout = () => {
+    clearAuthSession()
+    setIsAuthenticated(false)
   }
 
   return (
@@ -25,11 +36,20 @@ export default function LoginPage({ onLoginSuccess }) {
         <section className="login-page__form-section" aria-label="Authentification">
           <div className="login-page__form-wrapper">
             <AuthHeader />
-            <LoginCard
-              mode={authMode}
-              onModeChange={setAuthMode}
-              onLoginSuccess={handleLoginSuccess}
-            />
+            {isAuthenticated ? (
+              <div className="login-page__session" role="status">
+                <p>Votre session MOMO-MAP est active.</p>
+                <Button variant="dark" fullWidth onClick={handleLogout}>
+                  Sign out
+                </Button>
+              </div>
+            ) : (
+              <LoginCard
+                mode={authMode}
+                onModeChange={setAuthMode}
+                onLoginSuccess={handleLoginSuccess}
+              />
+            )}
           </div>
         </section>
       </main>

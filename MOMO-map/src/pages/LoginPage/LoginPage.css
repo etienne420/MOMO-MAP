@@ -37,6 +37,20 @@
   align-items: center;
 }
 
+.login-page__session {
+  width: 100%;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+}
+
+.login-page__session p {
+  margin: 0 0 20px;
+  color: #334155;
+}
+
 @media (max-width: 1080px) {
   .login-page__container {
     gap: 40px;

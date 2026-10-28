@@ -46,6 +46,8 @@ export function validateSignUpForm(formData) {
     errors.email = 'Please enter your email.'
   } else if (!isValidEmailFormat(formData.email)) {
     errors.email = 'Please enter a valid email address.'
+  } else if (!isInstitutionalEmail(formData.email)) {
+    errors.email = 'Please use your Cégep Montmorency email address.'
   }
 
   if (!formData.password) {
