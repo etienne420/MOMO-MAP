@@ -39,9 +39,24 @@
   transform: translateY(-1px);
 }
 
+.amenity-row.is-active {
+  background-color: #f0fdf4;
+  border-color: #1e6b37;
+  box-shadow: 0 0 0 2px rgba(30, 107, 55, 0.15);
+}
+
 .amenity-row:active {
   transform: translateY(0);
   background-color: #f3f4f6;
+}
+
+.amenity-row__active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #1e6b37;
+  margin-left: auto;
+  box-shadow: 0 0 6px rgba(30, 107, 55, 0.4);
 }
 
 .amenity-row__icon-tile {

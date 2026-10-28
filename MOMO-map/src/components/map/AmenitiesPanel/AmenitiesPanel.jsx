@@ -75,26 +75,34 @@ const AMENITIES = [
   },
 ]
 
-export default function AmenitiesPanel() {
+export default function AmenitiesPanel({ activeAmenityId = null, onSelectAmenity = null }) {
   return (
     <div className="amenities-card" role="region" aria-label="Commodités">
       <div className="amenities-card__list">
-        {AMENITIES.map((amenity) => (
-          <button
-            key={amenity.id}
-            type="button"
-            className="amenity-row"
-            aria-label={amenity.label}
-          >
-            <div
-              className="amenity-row__icon-tile"
-              style={{ backgroundColor: amenity.bgColor }}
+        {AMENITIES.map((amenity) => {
+          const isActive = activeAmenityId === amenity.id
+          return (
+            <button
+              key={amenity.id}
+              type="button"
+              className={`amenity-row ${isActive ? 'is-active' : ''}`}
+              onClick={() => onSelectAmenity && onSelectAmenity(isActive ? null : amenity.id)}
+              aria-label={amenity.label}
+              aria-pressed={isActive}
             >
-              {amenity.icon}
-            </div>
-            <span className="amenity-row__label">{amenity.label}</span>
-          </button>
-        ))}
+              <div
+                className="amenity-row__icon-tile"
+                style={{ backgroundColor: amenity.bgColor }}
+              >
+                {amenity.icon}
+              </div>
+              <span className="amenity-row__label">{amenity.label}</span>
+              {isActive && (
+                <span className="amenity-row__active-dot" aria-hidden="true" />
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
