@@ -1,4 +1,5 @@
 // app.js
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -11,8 +12,13 @@ import { connectDB } from "./utils/db.js";
 const PORT = process.env.PORT || 5000;
 
 const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://All-user:Momo-Map2026@momo-map.2oegp3l.mongodb.net/momo_map_db?retryWrites=true&w=majority";
+  process.env.MONGODB_URI;
+
+  // Vérification de sécurité
+if (!MONGODB_URI) {
+  console.error("ERREUR : MONGODB_URI n'est pas défini dans le fichier .env !");
+  process.exit(1);
+}
 
 // Connexion à MongoDB
 await connectDB(MONGODB_URI);
