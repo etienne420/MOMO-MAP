@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "clean": "python3 scripts/clean-svg.py",
     "extract": "node scripts/extract-map.mjs",
     "push-mongo": "node scripts/push-to-mongo.mjs",
     "dev": "vite",
