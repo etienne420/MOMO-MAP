@@ -126,8 +126,27 @@ export function getAuthToken() {
   return null
 }
 
+export function getAuthSession() {
+  const token = window.sessionStorage.getItem(SESSION_TOKEN_KEY)
+  if (!token) {
+    return { token: null, expiresAt: null, expired: false }
+  }
+
+  try {
+    const expiresAt = getTokenExpiration(token)
+    if (expiresAt > Date.now()) {
+      return { token, expiresAt, expired: false }
+    }
+
+    return { token: null, expiresAt, expired: true }
+  } catch {
+    clearAuthSession()
+    return { token: null, expiresAt: null, expired: false }
+  }
+}
+
 export function getSessionRole() {
-  const token = getAuthToken()
+  const token = getAuthSession().token
   if (!token) {
     return null
   }

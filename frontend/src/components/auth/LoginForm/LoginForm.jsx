@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import InputField from '../../common/InputField/InputField'
 import Button from '../../common/Button/Button'
 import {
@@ -40,6 +40,7 @@ export default function LoginForm({
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [authFeedback, setAuthFeedback] = useState(null)
+  const submissionInProgress = useRef(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -58,6 +59,9 @@ export default function LoginForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submissionInProgress.current) {
+      return
+    }
 
     const validationResult =
       mode === 'signup'
@@ -69,6 +73,7 @@ export default function LoginForm({
       return
     }
 
+    submissionInProgress.current = true
     setIsLoading(true)
     setAuthFeedback(null)
 
@@ -103,6 +108,7 @@ export default function LoginForm({
             : 'Une erreur inconnue est survenue. Veuillez réessayer.',
       })
     } finally {
+      submissionInProgress.current = false
       setIsLoading(false)
     }
   }
@@ -118,7 +124,7 @@ export default function LoginForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate>
+      <form onSubmit={handleSubmit} noValidate aria-busy={isLoading}>
         {/* ===================== SIGN UP MODE ===================== */}
         {mode === 'signup' && (
           <>
@@ -175,6 +181,8 @@ export default function LoginForm({
               variant="dark"
               fullWidth
               isLoading={isLoading}
+              aria-label={isLoading ? 'Création du compte en cours' : undefined}
+              aria-busy={isLoading}
               className="modern-auth-form__submit-btn"
             >
               Sign up
@@ -185,6 +193,7 @@ export default function LoginForm({
                 You have an account?{' '}
                 <button
                   type="button"
+                  disabled={isLoading}
                   className="modern-auth-form__switch-link"
                   onClick={() => {
                     setAuthFeedback(null)
@@ -248,6 +257,8 @@ export default function LoginForm({
               variant="dark"
               fullWidth
               isLoading={isLoading}
+              aria-label={isLoading ? 'Connexion en cours' : undefined}
+              aria-busy={isLoading}
               className="modern-auth-form__submit-btn"
             >
               Sign in
@@ -258,6 +269,7 @@ export default function LoginForm({
                 You don't have an account yet?{' '}
                 <button
                   type="button"
+                  disabled={isLoading}
                   className="modern-auth-form__switch-link"
                   onClick={() => {
                     setAuthFeedback(null)

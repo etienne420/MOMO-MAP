@@ -25,10 +25,12 @@ administrateurs. Le serveur vérifie la signature, l’expiration et le rôle du
 le rôle affiché par le frontend ne constitue jamais une autorisation.
 
 Le jeton reçu est conservé dans `sessionStorage` pour l’onglet courant et supprimé
-à la déconnexion. L’inscription vérifie aussi le format du courriel institutionnel
-côté client, mais le serveur doit refaire cette validation et toutes les validations
-de sécurité : une vérification côté navigateur peut être contournée. N’envoyez jamais
-de mot de passe vers un service tiers et ne signez jamais de JWT dans le client.
+à la déconnexion. L’interface détecte son expiration même si la page reste ouverte,
+ferme la session et demande à l’utilisateur de se reconnecter. L’inscription vérifie
+aussi le format du courriel institutionnel côté client, mais le serveur doit refaire
+cette validation et toutes les validations de sécurité : une vérification côté
+navigateur peut être contournée. N’envoyez jamais de mot de passe vers un service
+tiers et ne signez jamais de JWT dans le client.
 Le client lit uniquement la date d’expiration du JWT pour fermer une session
 expirée ; il ne valide pas sa signature, ce qui doit rester la responsabilité du serveur.
 Le rôle décodé du JWT sert uniquement à afficher le rôle de la session dans

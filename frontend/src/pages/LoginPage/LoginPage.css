@@ -57,6 +57,18 @@
   color: #64748b;
 }
 
+.login-page__session-expired {
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 @media (max-width: 1080px) {
   .login-page__container {
     gap: 40px;
