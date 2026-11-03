@@ -38,8 +38,9 @@ function assertJwtSecret(secret) {
 
 function createAccessToken(user, secret) {
   assertJwtSecret(secret);
+  const role = user.role === "admin" ? "admin" : "user";
   return jwt.sign(
-    { role: "user" },
+    { role },
     secret,
     {
       algorithm: "HS256",
@@ -126,6 +127,7 @@ export function createAuthRouter({
         username: normalizedUsername,
         email: normalizedEmail,
         password: await hashPassword(password),
+        role: "user",
       });
 
       return res.status(201).json({ token: createAccessToken(user, jwtSecret) });

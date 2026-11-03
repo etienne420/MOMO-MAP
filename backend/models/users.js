@@ -17,6 +17,12 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
   },
   password: { type: String, required: true },
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user",
+    required: true,
+  },
   tokens: { type: Number, default: 0 },
   themeActuel: {
     type: mongoose.Schema.Types.ObjectId,

@@ -29,7 +29,11 @@ function createUserModel(users) {
         throw error;
       }
 
-      const user = { ...values, _id: `user-${users.length + 1}` };
+      const user = {
+        role: "user",
+        ...values,
+        _id: `user-${users.length + 1}`,
+      };
       users.push(user);
       return user;
     },
@@ -77,6 +81,7 @@ test("auth endpoints match the frontend request and JWT contract", async (t) => 
   assert.equal(typeof registrationResult.token, "string");
   const registrationClaims = jwt.verify(registrationResult.token, JWT_SECRET);
   assert.equal(registrationClaims.role, "user");
+  assert.equal(users[0].role, "user");
   assert.equal(registrationClaims.sub, "user-1");
   assert.ok(registrationClaims.exp > registrationClaims.iat);
   assert.notEqual(users[0].password, "map-password");
@@ -123,4 +128,16 @@ test("auth endpoints match the frontend request and JWT contract", async (t) => 
   assert.deepEqual(await invalidLogin.json(), {
     message: "Identifiants invalides.",
   });
+
+  users[0].role = "admin";
+  const adminLogin = await post("/login", {
+    username: "mapuser",
+    password: "map-password",
+  });
+  assert.equal(adminLogin.status, 200);
+  const adminClaims = jwt.verify(
+    (await adminLogin.json()).token,
+    JWT_SECRET,
+  );
+  assert.equal(adminClaims.role, "admin");
 });

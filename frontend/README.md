@@ -14,8 +14,15 @@ Le formulaire React utilise l’API d’authentification du backend.
 Le backend fournit `POST /auth/register` (champs `username`, `email`, `password`)
 et `POST /auth/login` (champs `username` ou courriel, et `password`). Les deux
 routes renvoient `{ "token": "..." }`, un JWT signé qui expire après une heure et
-contient le rôle `user`. L’inscription reprend les validations du formulaire et
-refuse les comptes dont le nom d’utilisateur ou le courriel existe déjà.
+contient le rôle enregistré pour le compte. Tout nouveau compte reçoit le rôle
+`user`; un champ `role` envoyé à l’inscription est ignoré. Pour promouvoir un
+compte, modifiez manuellement son champ `role` dans MongoDB à `admin`.
+
+Les routes protégées doivent utiliser `authenticateToken` puis `authorizeRoles`
+depuis `backend/middleware/auth.js`, par exemple
+`authenticateToken(), authorizeRoles("admin")` pour une route réservée aux
+administrateurs. Le serveur vérifie la signature, l’expiration et le rôle du JWT;
+le rôle affiché par le frontend ne constitue jamais une autorisation.
 
 Le jeton reçu est conservé dans `sessionStorage` pour l’onglet courant et supprimé
 à la déconnexion. L’inscription vérifie aussi le format du courriel institutionnel
