@@ -1,320 +1,344 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import User from "../models/users.js";
-import HttpError from "../util/http-error.js";
 
-// GET - Obtenir tous les utilisateurs
-const getUsers = async (req, res, next) => {
-  let users;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const INSTITUTIONAL_DOMAIN = "cmontmorency.qc.ca";
+const BCRYPT_ROUNDS = 12;
 
-  try {
-    users = await User.find({})
-      .populate("themeActuel")
-      .populate("avatarActuel");
-  } catch (e) {
-    console.error(e);
-    return next(new HttpError("Une erreur BD est survenue.", 500));
-  }
+// ==========================================
+// FONCTIONS UTILITAIRES
+// ==========================================
 
-  res.status(200).json({
-    users: users.map((user) => user.toObject({ getters: true })),
-  });
-};
+function isObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 
-// GET - Obtenir un utilisateur par son ID
-const getUserById = async (req, res, next) => {
-  const userId = req.params.uid;
-  let user;
+// Vérifier le courriel institutionnel
+function isInstitutionalEmail(email) {
+  if (!EMAIL_PATTERN.test(email)) return false;
 
-  try {
-    user = await User.findById(userId)
-      .populate("themeActuel")
-      .populate("avatarActuel");
-  } catch (e) {
-    console.error(e);
-    return next(
-      new HttpError("Erreur lors de la récupération de l'utilisateur.", 500),
+  const domain = email.slice(email.lastIndexOf("@") + 1).toLowerCase();
+
+  return (
+    domain === INSTITUTIONAL_DOMAIN ||
+    domain.endsWith(`.${INSTITUTIONAL_DOMAIN}`)
+  );
+}
+
+// Échapper les caractères spéciaux pour RegExp
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Vérifier la clé secrète JWT
+function assertJwtSecret(secret) {
+  if (typeof secret !== "string" || secret.length < 32) {
+    const error = new Error(
+      "JWT_SECRET doit être configuré avec au moins 32 caractères.",
     );
+
+    error.code = 500;
+    throw error;
   }
+}
 
-  if (!user) {
-    return res.status(404).json({
-      message: "Utilisateur non trouvé.",
-    });
-  }
+// Créer un token JWT
+function createAccessToken(user, secret) {
+  assertJwtSecret(secret);
 
-  res.status(200).json({
-    user: user.toObject({ getters: true }),
-  });
-};
-
-
-// POST - Inscription utilisateur
-const register = async (req, res, next) => {
-  const { name, email, password } = req.body;
-
-  let hasUser;
-
-  // Vérifier si l'email existe déjà
-  try {
-    hasUser = await User.findOne({ email });
-  } catch (e) {
-    console.error(e);
-    return next(new HttpError("Erreur lors de la vérification de l'utilisateur.", 500));
-  }
-
-  if (hasUser) {
-    return res.status(422).json({
-      message: "Cet email est déjà utilisé.",
-    });
-  }
-
-  // Hacher le mot de passe
-  let hashedPassword;
-
-  try {
-    hashedPassword = await bcrypt.hash(password, 12);
-  } catch (e) {
-    console.error(e);
-    return next(new HttpError("Erreur lors du hachage du mot de passe.", 500));
-  }
-
-  // Créer le nouvel utilisateur
-  const createdUser = new User({
-    name,
-    email,
-    password: hashedPassword,
-    tokens: 0,
-    themeActuel: null,
-    avatarActuel: null,
-  });
-
-  try {
-    await createdUser.save();
-  } catch (e) {
-    console.error(e);
-    return next(new HttpError("Création de l'utilisateur échouée.", 500));
-  }
-
-  res.status(201).json({
-    user: {
-      id: createdUser.id,
-      name: createdUser.name,
-      email: createdUser.email,
-      tokens: createdUser.tokens,
+  return jwt.sign(
+    {
+      role: user.role === "admin" ? "admin" : "user",
+      username: user.username,
     },
-    message: "Inscription réussie.",
-  });
-};
+    secret,
+    {
+      algorithm: "HS256",
+      expiresIn: "1h",
+      subject: user._id.toString(),
+    },
+  );
+}
 
+// Retourner les informations publiques de l'utilisateur
+function getPublicUser(user) {
+  return {
+    _id: user._id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    tokens: user.tokens,
+    themeActuel: user.themeActuel,
+    avatarActuel: user.avatarActuel,
+  };
+}
 
+// ==========================================
+// OBTENIR TOUS LES UTILISATEURS
+// ==========================================
 
-// POST - Connexion utilisateur
-const login = async (req, res, next) => {
-  // Récupération des informations de connexion
-  const { email, password } = req.body;
-
-  let identifiedUser;
-
-  // Recherche de l'utilisateur avec son email
+async function getUsers(req, res, next) {
   try {
-    identifiedUser = await User.findOne({ email })
+    const users = await User.find({}).select("-password");
+
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// OBTENIR UN UTILISATEUR PAR ID
+// ==========================================
+
+async function getUserById(req, res, next) {
+  try {
+    const user = await User.findById(req.params.uid)
+      .select("-password")
       .populate("themeActuel")
       .populate("avatarActuel");
-  } catch (e) {
-    console.error(e);
-    return next(
-      new HttpError("Erreur lors de la récupération de l'utilisateur.", 500)
-    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Utilisateur introuvable.",
+      });
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
   }
+}
 
-  // Vérifier si l'utilisateur existe
-  if (!identifiedUser) {
-    return res.status(401).json({
-      message: "Identification échouée, vérifiez vos identifiants.",
-    });
-  }
+// ==========================================
+// INSCRIPTION
+// ==========================================
 
-  // Comparer le mot de passe fourni avec le hash dans MongoDB
-  let isValidPassword;
-
-  try {
-    isValidPassword = await bcrypt.compare(
-      password,
-      identifiedUser.password
-    );
-  } catch (e) {
-    console.error(e);
-    return next(
-      new HttpError("Erreur lors de la vérification du mot de passe.", 500)
-    );
-  }
-
-  // Vérifier si le mot de passe est correct
-  if (!isValidPassword) {
-    return res.status(401).json({
-      message: "Identification échouée, vérifiez vos identifiants.",
-    });
-  }
-
-  // Création du token JWT
-  let token;
-
-  try {
-    token = jwt.sign(
-      {
-        userId: identifiedUser.id,
-        email: identifiedUser.email,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
-    );
-  } catch (e) {
-    console.error(e);
-    return next(
-      new HttpError("Impossible de créer le token JWT.", 500)
-    );
-  }
-
-  // Retourner les informations de l'utilisateur
-  res.status(200).json({
-    userId: identifiedUser.id,
-    name: identifiedUser.name,
-    email: identifiedUser.email,
-    tokens: identifiedUser.tokens,
-    themeActuel: identifiedUser.themeActuel,
-    avatarActuel: identifiedUser.avatarActuel,
-    token: token,
-  });
-};
-
-
-// PATCH - Modifier les tokens d'un utilisateur
-const updateTokens = async (req, res, next) => {
-  const userId = req.params.uid;
-  const { tokens } = req.body;
-
-  if (!Number.isInteger(tokens) || tokens < 0) {
+async function register(req, res, next) {
+  if (!isObject(req.body)) {
     return res.status(400).json({
-      message: "Le nombre de tokens doit être un entier positif ou nul.",
+      message: "Les informations du compte sont invalides.",
     });
   }
 
-  let user;
+  const { username, email, password } = req.body;
+
+  if (
+    typeof username !== "string" ||
+    typeof email !== "string" ||
+    typeof password !== "string"
+  ) {
+    return res.status(400).json({
+      message: "Nom d'utilisateur, courriel et mot de passe requis.",
+    });
+  }
+
+  const cleanUsername = username.trim();
+  const normalizedUsername = cleanUsername.toLowerCase();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (cleanUsername.length < 3) {
+    return res.status(400).json({
+      message: "Le nom d'utilisateur doit contenir au moins 3 caractères.",
+    });
+  }
+
+  if (!isInstitutionalEmail(normalizedEmail)) {
+    return res.status(400).json({
+      message: "Veuillez utiliser une adresse courriel du Cégep Montmorency.",
+    });
+  }
+
+  if (password.length < 3) {
+    return res.status(400).json({
+      message: "Le mot de passe doit contenir au moins 3 caractères.",
+    });
+  }
 
   try {
-    user = await User.findById(userId);
-  } catch (e) {
-    console.error(e);
-    return next(
-      new HttpError("Erreur lors de la récupération de l'utilisateur.", 500),
+    const jwtSecret = process.env.JWT_SECRET;
+    assertJwtSecret(jwtSecret);
+
+    // Recherche exacte du username et du courriel
+    const usernamePattern = new RegExp(
+      `^${escapeRegExp(normalizedUsername)}$`,
+      "i",
     );
+
+    const emailPattern = new RegExp(`^${escapeRegExp(normalizedEmail)}$`, "i");
+
+    const existingUser = await User.findOne({
+      $or: [{ username: usernamePattern }, { email: emailPattern }],
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "Ce nom d'utilisateur ou courriel est déjà utilisé.",
+      });
+    }
+
+    // Hacher le mot de passe avec bcrypt
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    // Créer l'utilisateur avec 1 token initial
+    const user = await User.create({
+      username: normalizedUsername,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: "user",
+      tokens: 1,
+    });
+
+    return res.status(201).json({
+      token: createAccessToken(user, jwtSecret),
+      user: getPublicUser(user),
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "Ce nom d'utilisateur ou courriel est déjà utilisé.",
+      });
+    }
+
+    next(error);
+  }
+}
+
+// ==========================================
+// CONNEXION
+// ==========================================
+
+async function login(req, res, next) {
+  if (!isObject(req.body)) {
+    return res.status(400).json({
+      message: "Les identifiants sont invalides.",
+    });
   }
 
-  if (!user) {
-    return res.status(404).json({
-      message: "Utilisateur non trouvé.",
+  const { username, password } = req.body;
+
+  if (
+    typeof username !== "string" ||
+    !username.trim() ||
+    typeof password !== "string" ||
+    password.length < 3
+  ) {
+    return res.status(400).json({
+      message: "Nom d'utilisateur et mot de passe requis.",
     });
   }
 
   try {
-    user.tokens = tokens;
+    const jwtSecret = process.env.JWT_SECRET;
+    assertJwtSecret(jwtSecret);
+
+    const normalizedIdentifier = username.trim().toLowerCase();
+
+    // Recherche exacte du username ou du courriel
+    const identifierPattern = new RegExp(
+      `^${escapeRegExp(normalizedIdentifier)}$`,
+      "i",
+    );
+
+    const user = await User.findOne({
+      $or: [{ username: identifierPattern }, { email: identifierPattern }],
+    });
+
+    // Vérifier les identifiants
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({
+        message: "Identifiants invalides.",
+      });
+    }
+
+    // Ajouter 1 token après chaque connexion réussie
+    user.tokens += 1;
+
     await user.save();
 
-    res.status(200).json({
-      message: "Tokens mis à jour avec succès.",
-      tokens: user.tokens,
+    return res.json({
+      token: createAccessToken(user, jwtSecret),
+      user: getPublicUser(user),
     });
-  } catch (e) {
-    console.error(e);
-    return next(new HttpError("Impossible de modifier les tokens.", 500));
+  } catch (error) {
+    next(error);
   }
-};
+}
 
-// PATCH - Modifier le thème actuel d'un utilisateur
-const updateTheme = async (req, res, next) => {
-  const userId = req.params.uid;
-  const { themeId } = req.body;
+// ==========================================
+// MODIFIER LE THÈME
+// ==========================================
 
-  let user;
-
+async function updateTheme(req, res, next) {
   try {
-    user = await User.findById(userId);
-  } catch (e) {
-    console.error(e);
-    return next(
-      new HttpError("Erreur lors de la récupération de l'utilisateur.", 500),
-    );
-  }
+    const user = await User.findById(req.params.uid);
 
-  if (!user) {
-    return res.status(404).json({
-      message: "Utilisateur non trouvé.",
-    });
-  }
+    if (!user) {
+      return res.status(404).json({
+        message: "Utilisateur introuvable.",
+      });
+    }
 
-  try {
-    user.themeActuel = themeId || null;
+    user.themeActuel = req.body.themeActuel || null;
+
     await user.save();
 
-    await user.populate("themeActuel");
+    const updatedUser = await User.findById(user._id)
+      .select("-password")
+      .populate("themeActuel")
+      .populate("avatarActuel");
 
-    res.status(200).json({
-      message: "Thème modifié avec succès.",
-      themeActuel: user.themeActuel,
+    res.json({
+      user: updatedUser,
     });
-  } catch (e) {
-    console.error(e);
-    return next(new HttpError("Impossible de modifier le thème.", 500));
+  } catch (error) {
+    next(error);
   }
-};
+}
 
-// PATCH - Modifier l'avatar actuel d'un utilisateur
-const updateAvatar = async (req, res, next) => {
-  const userId = req.params.uid;
-  const { avatarId } = req.body;
+// ==========================================
+// MODIFIER L'AVATAR
+// ==========================================
 
-  let user;
-
+async function updateAvatar(req, res, next) {
   try {
-    user = await User.findById(userId);
-  } catch (e) {
-    console.error(e);
-    return next(
-      new HttpError("Erreur lors de la récupération de l'utilisateur.", 500),
-    );
-  }
+    const user = await User.findById(req.params.uid);
 
-  if (!user) {
-    return res.status(404).json({
-      message: "Utilisateur non trouvé.",
-    });
-  }
+    if (!user) {
+      return res.status(404).json({
+        message: "Utilisateur introuvable.",
+      });
+    }
 
-  try {
-    user.avatarActuel = avatarId || null;
+    user.avatarActuel = req.body.avatarActuel || null;
+
     await user.save();
 
-    await user.populate("avatarActuel");
+    const updatedUser = await User.findById(user._id)
+      .select("-password")
+      .populate("themeActuel")
+      .populate("avatarActuel");
 
-    res.status(200).json({
-      message: "Avatar modifié avec succès.",
-      avatarActuel: user.avatarActuel,
+    res.json({
+      user: updatedUser,
     });
-  } catch (e) {
-    console.error(e);
-    return next(new HttpError("Impossible de modifier l'avatar.", 500));
+  } catch (error) {
+    next(error);
   }
-};
+}
 
-export default {
+// ==========================================
+// EXPORTATION
+// ==========================================
+
+const usersController = {
   getUsers,
   getUserById,
   register,
   login,
-  updateTokens,
   updateTheme,
   updateAvatar,
 };
+
+export default usersController;
