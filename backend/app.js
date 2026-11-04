@@ -11,10 +11,9 @@ import { connectDB } from "./utils/db.js";
 
 const PORT = process.env.PORT || 5000;
 
-const MONGODB_URI =
-  process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-  // Vérification de sécurité
+// Vérification de sécurité
 if (!MONGODB_URI) {
   console.error("ERREUR : MONGODB_URI n'est pas défini dans le fichier .env !");
   process.exit(1);
@@ -56,6 +55,17 @@ const corsOptions = {
   ],
 };
 app.use(cors(corsOptions));
+
+// 5. Route principale
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "API REST MoMo-MAP opérationnelle !",
+    status: "success",
+  });
+});
+
+// 6. Routes des utilisateurs
+app.use("/api/users", usersRoutes);
 
 // Si aucune route n'est trouvée, on crée une erreur
 app.use((req, res, next) => {
