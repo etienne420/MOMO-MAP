@@ -1,0 +1,118 @@
+.local-search {
+  width: 100%;
+  max-width: 560px;
+  font-family: var(--font-family-base, sans-serif);
+}
+
+.local-search__label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-text-title, #0f172a);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.local-search__control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 6px 7px 6px 14px;
+  border: 1px solid var(--color-border-input, #e2e8f0);
+  border-radius: 12px;
+  background-color: var(--color-bg-input, #f5f9fc);
+  transition:
+    border-color var(--transition-normal, 200ms ease),
+    box-shadow var(--transition-normal, 200ms ease),
+    background-color var(--transition-normal, 200ms ease);
+}
+
+.local-search__control:focus-within {
+  border-color: var(--color-border-focus, #1e6b37);
+  background-color: #fff;
+  box-shadow: var(--shadow-input-focus, 0 0 0 3px rgba(30, 107, 55, 0.15));
+}
+
+.local-search__icon {
+  display: flex;
+  flex: 0 0 auto;
+  color: var(--color-text-muted, #64748b);
+}
+
+.local-search__input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-title, #0f172a);
+  font: inherit;
+  font-size: 14px;
+}
+
+.local-search__input::placeholder {
+  color: var(--color-text-subtle, #94a3b8);
+}
+
+.local-search__clear {
+  flex: 0 0 auto;
+  padding: 7px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted, #64748b);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.local-search__clear:hover {
+  color: var(--color-text-title, #0f172a);
+}
+
+.local-search__submit {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--color-dark-btn, #0f172a);
+  color: var(--color-text-white, #fff);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast, 150ms ease),
+    opacity var(--transition-fast, 150ms ease);
+}
+
+.local-search__submit:hover:not(:disabled) {
+  background: var(--color-dark-btn-hover, #1e6b37);
+}
+
+.local-search__submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.local-search__clear:focus-visible,
+.local-search__submit:focus-visible {
+  outline: 3px solid rgba(30, 107, 55, 0.35);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .local-search__control {
+    gap: 8px;
+    padding-left: 11px;
+  }
+
+  .local-search__submit {
+    padding: 0 11px;
+    font-size: 12px;
+  }
+}
