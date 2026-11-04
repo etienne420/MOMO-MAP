@@ -40,8 +40,9 @@ function assertJwtSecret(secret) {
 
     error.code = 500;
     throw error;
-  }
+  }     
 }
+
 
 // Créer un token JWT
 function createAccessToken(user, secret) {
