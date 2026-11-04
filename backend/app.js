@@ -1,4 +1,5 @@
 // app.js
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -10,9 +11,13 @@ import { connectDB } from "./utils/db.js";
 
 const PORT = process.env.PORT || 5000;
 
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://All-user:Momo-Map2026@momo-map.2oegp3l.mongodb.net/momo_map_db?retryWrites=true&w=majority";
+const MONGODB_URI = process.env.MONGODB_URI;
+
+// Vérification de sécurité
+if (!MONGODB_URI) {
+  console.error("ERREUR : MONGODB_URI n'est pas défini dans le fichier .env !");
+  process.exit(1);
+}
 
 // Connexion à MongoDB
 await connectDB(MONGODB_URI);
@@ -50,6 +55,17 @@ const corsOptions = {
   ],
 };
 app.use(cors(corsOptions));
+
+// 5. Route principale
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "API REST MoMo-MAP opérationnelle !",
+    status: "success",
+  });
+});
+
+// 6. Routes des utilisateurs
+app.use("/api/users", usersRoutes);
 
 // Si aucune route n'est trouvée, on crée une erreur
 app.use((req, res, next) => {
