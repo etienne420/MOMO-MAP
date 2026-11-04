@@ -1,64 +1,83 @@
+// app.js
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+
+// Importer le gestionnaire d'erreurs
 import errorHandler from "./handler/error-handler.js";
-import { createAuthRouter } from "./routes/auth.js";
 import { connectDB } from "./utils/db.js";
 
-import dns from "node:dns";
-
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
-
 const PORT = process.env.PORT || 5000;
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
+// Vérification de sécurité
 if (!MONGODB_URI) {
-  throw new Error("La variable MONGODB_URI doit être configurée.");
+  console.error("ERREUR : MONGODB_URI n'est pas défini dans le fichier .env !");
+  process.exit(1);
 }
 
+// Connexion à MongoDB
 await connectDB(MONGODB_URI);
 
 const app = express();
 
+// 1. Sécurité Helmet : Sécurise les en-têtes HTTP
 app.use(helmet());
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Origin",
-      "X-Requested-With",
-      "Content-Type",
-      "Accept",
-      "Authorization",
-    ],
-  }),
-);
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      error:
-        "Trop de requêtes provenant de cette IP, veuillez réessayer plus tard.",
-    },
-  }),
-);
-app.use(express.json());
-app.use("/auth", createAuthRouter());
 
+// 2. Limitation de débit (Rate Limiting) : Empêche les abus / attaques par force brute
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limite chaque IP à 100 requêtes par fenêtre de 15 minutes
+  standardHeaders: true, // Renvoie les infos de limite dans les en-têtes RateLimit-*
+  legacyHeaders: false, // Désactive les en-têtes X-RateLimit-*
+  message: {
+    error:
+      "Trop de requêtes provenant de cette IP, veuillez réessayer plus tard.",
+  },
+});
+app.use(limiter);
+
+app.use(express.json());
+
+// 3. Configuration CORS sécurisée
+const corsOptions = {
+  origin: "*", // Vous pouvez remplacer "*" par une URL spécifique (ex: "http://localhost:3000") en production
+  methods: ["GET", "POST", "PATCH", "DELETE"],
+  allowedHeaders: [
+    "Origin",
+    "X-Requested-With",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+  ],
+};
+app.use(cors(corsOptions));
+
+// 5. Route principale
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "API REST MoMo-MAP opérationnelle !",
+    status: "success",
+  });
+});
+
+// 6. Routes des utilisateurs
+app.use("/api/users", usersRoutes);
+
+// Si aucune route n'est trouvée, on crée une erreur
 app.use((req, res, next) => {
   const error = new Error("Route non trouvée");
   error.code = 404;
   next(error);
 });
 
+// Intercepte toutes les erreurs envoyées avec next(error)
 app.use(errorHandler);
 
+// Démarrage du serveur
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
 });
