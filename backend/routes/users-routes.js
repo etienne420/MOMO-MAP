@@ -1,4 +1,3 @@
-// users-routes.js
 import express from "express";
 import { check } from "express-validator";
 import usersController from "../controllers/users-controller.js";
@@ -6,34 +5,40 @@ import checkAuth from "../middleware/check-auth.js";
 
 const router = express.Router();
 
-// Middleware pour obtenir toutes les utilisateurs
+// Obtenir tous les utilisateurs
 router.get("/", usersController.getUsers);
 
-// Middleware pour obtenir un utilisateur par son ID
+// Obtenir un utilisateur par son ID
 router.get("/:uid", usersController.getUserById);
 
+// Connexion d'un utilisateur
+router.post(
+  "/login",
+  [check("email").isEmail(), check("password").not().isEmpty()],
+  usersController.login,
+);
 
-//  Middleware pour la connexion d'un utilisateur
-router.post("/login", usersController.login);
-
-//  Middleware pour l'inscription d'un utilisateur
+// Inscription d'un utilisateur
 router.post(
   "/register",
   [
-    check("username").not().isEmpty(), // username ne doit pas être vide
-    check("email").isEmail(), // email doit être valide
-    check("password").isLength({ min: 3 }), // password doit contenir au moins 3 caractères
+    check("name").not().isEmpty(),
+    check("email").isEmail(),
+    check("password").isLength({ min: 3 }),
   ],
   usersController.register,
 );
 
-// Middleware pour authentifier l'utilisateur
+// Authentification requise pour les routes suivantes
 router.use(checkAuth);
 
-// Middleware pour ajouter un film à un utilisateur
-router.post("/add/:uid/:mid", usersController.addMovieToUser);
+// Ajouter des tokens à un utilisateur
+router.patch("/:uid/tokens", usersController.updateTokens);
 
-// Middleware pour supprimer un film d'un utilisateur
-router.delete("/delete/:uid/:mid", usersController.deleteMovieFromUser);
+// Modifier le thème actuel d'un utilisateur
+router.patch("/:uid/theme", usersController.updateTheme);
+
+// Modifier l'avatar actuel d'un utilisateur
+router.patch("/:uid/avatar", usersController.updateAvatar);
 
 export default router;
