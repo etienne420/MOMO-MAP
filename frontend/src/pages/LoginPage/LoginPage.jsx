@@ -1,15 +1,24 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AuthHero from '../../components/auth/AuthHero/AuthHero'
 import AuthHeader from '../../components/auth/AuthHeader/AuthHeader'
 import LoginCard from '../../components/auth/LoginCard/LoginCard'
 import './LoginPage.css'
 
-export default function LoginPage({ onLoginSuccess }) {
-  const [authMode, setAuthMode] = useState('signup') // Starts in 'signup' mode as requested
+export default function LoginPage({ initialMode = 'signin', onLoginSuccess }) {
+  const [authMode, setAuthMode] = useState(initialMode)
+  const navigate = useNavigate()
+
+  const handleModeChange = (newMode) => {
+    setAuthMode(newMode)
+    navigate(newMode === 'signin' ? '/login' : '/signup')
+  }
 
   const handleLoginSuccess = (formData) => {
     if (onLoginSuccess) {
       onLoginSuccess(formData)
+    } else {
+      navigate('/map')
     }
   }
 
@@ -27,7 +36,7 @@ export default function LoginPage({ onLoginSuccess }) {
             <AuthHeader />
             <LoginCard
               mode={authMode}
-              onModeChange={setAuthMode}
+              onModeChange={handleModeChange}
               onLoginSuccess={handleLoginSuccess}
             />
           </div>
