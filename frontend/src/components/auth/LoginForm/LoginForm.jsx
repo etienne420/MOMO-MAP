@@ -1,11 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import InputField from '../../common/InputField/InputField'
 import Button from '../../common/Button/Button'
 import {
   validateSignInForm,
   validateSignUpForm,
 } from '../../../utils/validation'
-import { signIn, signUp } from '../../../services/auth'
 import './LoginForm.css'
 
 function EyeIcon() {
@@ -40,7 +39,6 @@ export default function LoginForm({
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [authFeedback, setAuthFeedback] = useState(null)
-  const submissionInProgress = useRef(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -59,9 +57,6 @@ export default function LoginForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (submissionInProgress.current) {
-      return
-    }
 
     const validationResult =
       mode === 'signup'
@@ -73,42 +68,31 @@ export default function LoginForm({
       return
     }
 
-    submissionInProgress.current = true
     setIsLoading(true)
     setAuthFeedback(null)
 
     try {
-      const credentials =
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      
+      const message =
         mode === 'signup'
-          ? {
-              username: formData.username.trim(),
-              email: formData.email.trim(),
-              password: formData.password,
-            }
-          : {
-              username: formData.username.trim(),
-              password: formData.password,
-            }
+          ? 'Compte créé avec succès ! Bienvenue sur MOMO-MAP.'
+          : 'Connexion réussie ! Bienvenue sur MOMO-MAP.'
 
-      if (mode === 'signup') {
-        await signUp(credentials)
-      } else {
-        await signIn(credentials)
-      }
+      setAuthFeedback({
+        type: 'success',
+        message,
+      })
 
       if (onSubmitSuccess) {
-        onSubmitSuccess()
+        onSubmitSuccess(formData)
       }
-    } catch (error) {
+    } catch {
       setAuthFeedback({
         type: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Une erreur inconnue est survenue. Veuillez réessayer.',
+        message: 'Une erreur est survenue. Veuillez réessayer.',
       })
     } finally {
-      submissionInProgress.current = false
       setIsLoading(false)
     }
   }
@@ -124,7 +108,7 @@ export default function LoginForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate aria-busy={isLoading}>
+      <form onSubmit={handleSubmit} noValidate>
         {/* ===================== SIGN UP MODE ===================== */}
         {mode === 'signup' && (
           <>
@@ -181,8 +165,6 @@ export default function LoginForm({
               variant="dark"
               fullWidth
               isLoading={isLoading}
-              aria-label={isLoading ? 'Création du compte en cours' : undefined}
-              aria-busy={isLoading}
               className="modern-auth-form__submit-btn"
             >
               Sign up
@@ -193,12 +175,8 @@ export default function LoginForm({
                 You have an account?{' '}
                 <button
                   type="button"
-                  disabled={isLoading}
                   className="modern-auth-form__switch-link"
-                  onClick={() => {
-                    setAuthFeedback(null)
-                    onModeChange('signin')
-                  }}
+                  onClick={() => onModeChange('signin')}
                 >
                   Sign in
                 </button>
@@ -257,8 +235,6 @@ export default function LoginForm({
               variant="dark"
               fullWidth
               isLoading={isLoading}
-              aria-label={isLoading ? 'Connexion en cours' : undefined}
-              aria-busy={isLoading}
               className="modern-auth-form__submit-btn"
             >
               Sign in
@@ -269,12 +245,8 @@ export default function LoginForm({
                 You don't have an account yet?{' '}
                 <button
                   type="button"
-                  disabled={isLoading}
                   className="modern-auth-form__switch-link"
-                  onClick={() => {
-                    setAuthFeedback(null)
-                    onModeChange('signup')
-                  }}
+                  onClick={() => onModeChange('signup')}
                 >
                   Sign up
                 </button>
