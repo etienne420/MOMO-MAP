@@ -1,44 +1,20 @@
-import express from "express";
-import { check } from "express-validator";
-import usersController from "../controllers/users-controller.js";
-import checkAuth from "../middleware/check-auth.js";
+import mongoose from "mongoose";
 
-const router = express.Router();
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  tokens: { type: Number, default: 0 },
+  themeActuel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Theme",
+    default: null,
+  },
+  avatarActuel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Avatar",
+    default: null,
+  },
+});
 
-// Obtenir tous les utilisateurs
-router.get("/", usersController.getUsers);
-
-// Obtenir un utilisateur par son ID
-router.get("/:uid", usersController.getUserById);
-
-// Connexion d'un utilisateur
-router.post(
-  "/login",
-  [check("email").isEmail(), check("password").not().isEmpty()],
-  usersController.login,
-);
-
-// Inscription d'un utilisateur
-router.post(
-  "/register",
-  [
-    check("name").not().isEmpty(),
-    check("email").isEmail(),
-    check("password").isLength({ min: 3 }),
-  ],
-  usersController.register,
-);
-
-// Authentification requise pour les routes suivantes
-router.use(checkAuth);
-
-// Ajouter des tokens à un utilisateur
-router.patch("/:uid/tokens", usersController.updateTokens);
-
-// Modifier le thème actuel d'un utilisateur
-router.patch("/:uid/theme", usersController.updateTheme);
-
-// Modifier l'avatar actuel d'un utilisateur
-router.patch("/:uid/avatar", usersController.updateAvatar);
-
-export default router;
+export default mongoose.model("User", userSchema);
