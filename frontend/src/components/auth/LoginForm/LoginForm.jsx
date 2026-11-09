@@ -5,13 +5,8 @@ import {
   validateSignInForm,
   validateSignUpForm,
 } from '../../../utils/validation'
+import { signIn, signUp } from '../../../services/auth'
 import './LoginForm.css'
-
-const HARDCODED_USER = {
-  username: 'test',
-  email: 'test',
-  password: 'test',
-}
 
 function EyeIcon() {
   return (
@@ -37,9 +32,9 @@ export default function LoginForm({
   onSubmitSuccess,
 }) {
   const [formData, setFormData] = useState({
-    username: 'test',
-    email: 'test',
-    password: 'test',
+    username: '',
+    email: '',
+    password: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
@@ -78,50 +73,36 @@ export default function LoginForm({
     setAuthFeedback(null)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      const credentials = {
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+      }
 
       if (mode === 'signin') {
-        const cleanUser = formData.username.trim().toLowerCase()
-        const cleanPass = formData.password
-
-        const isUserMatch =
-          cleanUser === HARDCODED_USER.username ||
-          cleanUser === HARDCODED_USER.email ||
-          cleanUser === 'test@cmontmorency.qc.ca'
-        const isPassMatch = cleanPass === HARDCODED_USER.password
-
-        if (!isUserMatch || !isPassMatch) {
-          setAuthFeedback({
-            type: 'error',
-            message: "Identifiants invalides. Utilisez 'test' comme nom d'utilisateur et mot de passe.",
-          })
-          return
-        }
+        await signIn({
+          username: credentials.username,
+          password: credentials.password,
+        })
+      } else {
+        await signUp(credentials)
       }
-
-      const submittedData = {
-        username: formData.username.trim() || 'test',
-        email: formData.email.trim() || 'test',
-        password: formData.password || 'test',
-      }
-      
-      const message =
-        mode === 'signup'
-          ? 'Compte créé avec succès ! Bienvenue sur MOMO-MAP.'
-          : 'Connexion réussie ! Bienvenue sur MOMO-MAP.'
 
       setAuthFeedback({
         type: 'success',
-        message,
+        message:
+          mode === 'signup'
+            ? 'Compte créé avec succès ! Bienvenue sur MOMO-MAP.'
+            : 'Connexion réussie ! Bienvenue sur MOMO-MAP.',
       })
 
       if (onSubmitSuccess) {
-        onSubmitSuccess(submittedData)
+        onSubmitSuccess(credentials)
       }
-    } catch {
+    } catch (error) {
       setAuthFeedback({
         type: 'error',
-        message: 'Une erreur est survenue. Veuillez réessayer.',
+        message: error?.message || 'Une erreur est survenue. Veuillez réessayer.',
       })
     } finally {
       setIsLoading(false)
@@ -150,7 +131,7 @@ export default function LoginForm({
                 name="username"
                 type="text"
                 label="Username"
-                placeholder="test"
+                placeholder="jdoe"
                 value={formData.username}
                 onChange={handleChange}
                 error={errors.username}
@@ -163,7 +144,7 @@ export default function LoginForm({
                 name="email"
                 type="text"
                 label="Email"
-                placeholder="test"
+                placeholder="prenom.nom@cmontmorency.qc.ca"
                 value={formData.email}
                 onChange={handleChange}
                 error={errors.email}
@@ -176,7 +157,7 @@ export default function LoginForm({
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 label="Password"
-                placeholder="test"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 error={errors.password}
@@ -235,7 +216,7 @@ export default function LoginForm({
                 name="username"
                 type="text"
                 label="Username"
-                placeholder="test"
+                placeholder="jdoe"
                 value={formData.username}
                 onChange={handleChange}
                 error={errors.username}
@@ -248,7 +229,7 @@ export default function LoginForm({
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 label="Password"
-                placeholder="test"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 error={errors.password}
