@@ -31,6 +31,11 @@ const userSchema = new mongoose.Schema({
       type: Date,                                                                                           
       default: null,                                                                                        
     },             
+  themeActuel: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Theme",
+    default: null,
+  },
   avatarActuel: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Avatar",
