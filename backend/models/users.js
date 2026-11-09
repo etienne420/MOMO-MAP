@@ -33,6 +33,13 @@ const userSchema = new mongoose.Schema({
     ref: "Avatar",
     default: null,
   },
+  ownedThemes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Theme" }],
+  ownedAvatars: [{ type: mongoose.Schema.Types.ObjectId, ref: "Avatar" }],
+  settings: {
+    turnByTurnGuidance: { type: Boolean, default: true },
+    showSchoolInsights: { type: Boolean, default: true },
+    reducedMotion: { type: Boolean, default: false },
+  },
 });
 
 export default mongoose.model("User", userSchema);

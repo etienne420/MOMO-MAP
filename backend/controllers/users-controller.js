@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/users.js";
+import Theme from "../models/theme.js";
+import Avatar from "../models/avatar.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INSTITUTIONAL_DOMAIN = "cmontmorency.qc.ca";
@@ -72,6 +74,9 @@ function getPublicUser(user) {
     tokens: user.tokens,
     themeActuel: user.themeActuel,
     avatarActuel: user.avatarActuel,
+    ownedThemes: user.ownedThemes,
+    ownedAvatars: user.ownedAvatars,
+    settings: user.settings,
   };
 }
 
@@ -330,6 +335,137 @@ async function updateAvatar(req, res, next) {
 }
 
 // ==========================================
+// CATALOGUE DE LA BOUTIQUE
+// ==========================================
+
+async function getShopCatalog(req, res, next) {
+  try {
+    const [themes, avatars] = await Promise.all([
+      Theme.find({}).lean(),
+      Avatar.find({}).lean(),
+    ]);
+    res.json({ themes, avatars });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// ACHETER UN ARTICLE
+// ==========================================
+
+async function purchaseItem(req, res, next) {
+  try {
+    const { kind, itemId } = req.body || {};
+    if (kind !== "theme" && kind !== "avatar") {
+      return res.status(400).json({ message: "Type d'article invalide." });
+    }
+    if (typeof itemId !== "string" || !itemId) {
+      return res.status(400).json({ message: "Identifiant d'article requis." });
+    }
+
+    const Model = kind === "theme" ? Theme : Avatar;
+    const item = await Model.findById(itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Article introuvable." });
+    }
+
+    const user = await User.findById(req.params.uid);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable." });
+    }
+
+    const ownedField = kind === "theme" ? "ownedThemes" : "ownedAvatars";
+    const alreadyOwned = user[ownedField].some(
+      (id) => id.toString() === itemId,
+    );
+    if (alreadyOwned) {
+      return res.status(409).json({ message: "Article déjà possédé." });
+    }
+
+    if (user.tokens < item.prix) {
+      return res.status(400).json({ message: "Jetons insuffisants." });
+    }
+
+    user.tokens -= item.prix;
+    user[ownedField].push(item._id);
+    await user.save();
+
+    res.json({ user: getPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// ÉQUIPER UN THÈME OU UN AVATAR
+// ==========================================
+
+async function equipItem(req, res, next) {
+  try {
+    const { kind, itemId } = req.body || {};
+    if (kind !== "theme" && kind !== "avatar") {
+      return res.status(400).json({ message: "Type d'article invalide." });
+    }
+
+    const user = await User.findById(req.params.uid);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable." });
+    }
+
+    const ownedField = kind === "theme" ? "ownedThemes" : "ownedAvatars";
+    const equipField = kind === "theme" ? "themeActuel" : "avatarActuel";
+
+    if (itemId === null) {
+      user[equipField] = null;
+    } else {
+      const owned = user[ownedField].some(
+        (id) => id.toString() === itemId,
+      );
+      if (!owned) {
+        return res.status(403).json({ message: "Article non possédé." });
+      }
+      user[equipField] = itemId;
+    }
+
+    await user.save();
+    res.json({ user: getPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// METTRE À JOUR LES PRÉFÉRENCES
+// ==========================================
+
+async function updateSettings(req, res, next) {
+  try {
+    const user = await User.findById(req.params.uid);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable." });
+    }
+
+    const incoming = req.body?.settings;
+    if (!isObject(incoming)) {
+      return res.status(400).json({ message: "Préférences invalides." });
+    }
+
+    const allowed = ["turnByTurnGuidance", "showSchoolInsights", "reducedMotion"];
+    for (const key of allowed) {
+      if (typeof incoming[key] === "boolean") {
+        user.settings[key] = incoming[key];
+      }
+    }
+
+    await user.save();
+    res.json({ user: getPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
 // EXPORTATION
 // ==========================================
 
@@ -340,6 +476,10 @@ const usersController = {
   login,
   updateTheme,
   updateAvatar,
+  getShopCatalog,
+  purchaseItem,
+  equipItem,
+  updateSettings,
 };
 
 export default usersController;
