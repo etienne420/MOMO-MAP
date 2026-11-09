@@ -279,17 +279,37 @@ async function login(req, res, next) {
 
 async function updateTheme(req, res, next) {
   try {
-    const user = await User.findById(req.params.uid);
+    const themeId = req.body?.themeActuel ?? null;
 
-    if (!user) {
-      return res.status(404).json({
-        message: "Utilisateur introuvable.",
+    if (themeId !== null && !mongoose.isValidObjectId(themeId)) {
+      return res.status(400).json({
+        message: "Identifiant de thème invalide.",
       });
     }
 
-    user.themeActuel = req.body.themeActuel || null;
+    // Le filtre vérifie la possession au moment de l'écriture.
+    const filter = { _id: req.params.uid };
+    if (themeId !== null) {
+      filter.ownedThemes = themeId;
+    }
 
-    await user.save();
+    const user = await User.findOneAndUpdate(
+      filter,
+      { $set: { themeActuel: themeId } },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({
+          message: "Utilisateur introuvable.",
+        });
+      }
+      return res.status(403).json({
+        message: "Thème non possédé.",
+      });
+    }
 
     const updatedUser = await User.findById(user._id)
       .select("-password")
@@ -310,17 +330,37 @@ async function updateTheme(req, res, next) {
 
 async function updateAvatar(req, res, next) {
   try {
-    const user = await User.findById(req.params.uid);
+    const avatarId = req.body?.avatarActuel ?? null;
 
-    if (!user) {
-      return res.status(404).json({
-        message: "Utilisateur introuvable.",
+    if (avatarId !== null && !mongoose.isValidObjectId(avatarId)) {
+      return res.status(400).json({
+        message: "Identifiant d'avatar invalide.",
       });
     }
 
-    user.avatarActuel = req.body.avatarActuel || null;
+    // Le filtre vérifie la possession au moment de l'écriture.
+    const filter = { _id: req.params.uid };
+    if (avatarId !== null) {
+      filter.ownedAvatars = avatarId;
+    }
 
-    await user.save();
+    const user = await User.findOneAndUpdate(
+      filter,
+      { $set: { avatarActuel: avatarId } },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({
+          message: "Utilisateur introuvable.",
+        });
+      }
+      return res.status(403).json({
+        message: "Avatar non possédé.",
+      });
+    }
 
     const updatedUser = await User.findById(user._id)
       .select("-password")
