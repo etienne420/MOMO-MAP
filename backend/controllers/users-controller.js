@@ -270,6 +270,8 @@ async function login(req, res, next) {
       });
     }
 
+    const accessToken = createAccessToken(user, jwtSecret);
+
     return res.json({
       accessToken,
       token: accessToken,
