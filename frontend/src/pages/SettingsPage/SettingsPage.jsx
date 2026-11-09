@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { updateUserSettings, getCurrentUserId } from '../../services/auth'
+import { updateUserSettings, getCurrentUserId, fetchCurrentUser } from '../../services/auth'
 import './SettingsPage.css'
 
 const TOGGLES = [
@@ -11,7 +11,6 @@ const TOGGLES = [
 
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const uid = getCurrentUserId()
   const [settings, setSettings] = useState({
     turnByTurnGuidance: true,
     showSchoolInsights: true,
@@ -19,12 +18,29 @@ export default function SettingsPage() {
   })
   const [status, setStatus] = useState('')
 
+  useEffect(() => {
+    if (!getCurrentUserId()) {
+      navigate('/login', { replace: true })
+      return
+    }
+    fetchCurrentUser()
+      .then((u) => {
+        if (u.settings) setSettings((prev) => ({ ...prev, ...u.settings }))
+      })
+      .catch((e) => setStatus(e.message))
+  }, [navigate])
+
   const toggle = async (key) => {
+    const currentUid = getCurrentUserId()
+    if (!currentUid) {
+      navigate('/login', { replace: true })
+      return
+    }
     const next = { ...settings, [key]: !settings[key] }
     setSettings(next)
     setStatus('Enregistrement…')
     try {
-      await updateUserSettings(uid, next)
+      await updateUserSettings(currentUid, next)
       setStatus('Enregistré')
     } catch (e) {
       setStatus(e.message)

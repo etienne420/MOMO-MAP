@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { getAuthToken } from './services/auth'
 import LoginPage from './pages/LoginPage/LoginPage'
 import SignUpPage from './pages/SignUpPage/SignUpPage'
 import MapPage from './pages/MapPage/MapPage'
@@ -32,6 +33,15 @@ function SignUpRoute() {
   )
 }
 
+function RequireAuth({ children }) {
+  const navigate = useNavigate()
+  const authed = !!getAuthToken()
+  useEffect(() => {
+    if (!authed) navigate('/login', { replace: true })
+  }, [authed, navigate])
+  return authed ? children : null
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -41,9 +51,9 @@ function App() {
         <Route path="/signin" element={<Navigate to="/login" replace />} />
         <Route path="/signup" element={<SignUpRoute />} />
         <Route path="/register" element={<Navigate to="/signup" replace />} />
-        <Route path="/map" element={<MapPage />} />
-        <Route path="/shop" element={<ShopPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/map" element={<RequireAuth><MapPage /></RequireAuth>} />
+        <Route path="/shop" element={<RequireAuth><ShopPage /></RequireAuth>} />
+        <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

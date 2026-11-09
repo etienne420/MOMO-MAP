@@ -17,6 +17,14 @@ function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function assertOwnership(req, res) {
+  if (req.auth?.userId !== req.params.uid) {
+    res.status(403).json({ message: "Accès interdit." });
+    return false;
+  }
+  return true;
+}
+
 // Vérifier le courriel institutionnel
 function isInstitutionalEmail(email) {
   if (!EMAIL_PATTERN.test(email)) return false;
@@ -53,6 +61,7 @@ function createAccessToken(user, secret) {
 
   return jwt.sign(
     {
+      sub: user._id.toString(),
       role: user.role === "admin" ? "admin" : "user",
       username: user.username,
     },
@@ -60,7 +69,6 @@ function createAccessToken(user, secret) {
     {
       algorithm: "HS256",
       expiresIn: "1h",
-      subject: user._id.toString(),
     },
   );
 }
@@ -100,6 +108,7 @@ async function getUsers(req, res, next) {
 // ==========================================
 
 async function getUserById(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
     const user = await User.findById(req.params.uid)
       .select("-password")
@@ -197,8 +206,10 @@ async function register(req, res, next) {
       tokens: 1,
     });
 
+    const accessToken = createAccessToken(user, jwtSecret);
     return res.status(201).json({
-      token: createAccessToken(user, jwtSecret),
+      accessToken,
+      token: accessToken,
       user: getPublicUser(user),
     });
   } catch (error) {
@@ -260,7 +271,8 @@ async function login(req, res, next) {
     }
 
     return res.json({
-      token: createAccessToken(user, jwtSecret),
+      accessToken,
+      token: accessToken,
       user: getPublicUser(user),
     });
   } catch (error) {
@@ -318,6 +330,7 @@ async function claimDailyBonus(req, res, next) {
 // ==========================================
 
 async function updateTheme(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
     const themeId = req.body?.themeActuel ?? null;
 
@@ -369,6 +382,7 @@ async function updateTheme(req, res, next) {
 // ==========================================
 
 async function updateAvatar(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
     const avatarId = req.body?.avatarActuel ?? null;
 
@@ -436,6 +450,7 @@ async function getShopCatalog(req, res, next) {
 // ==========================================
 
 async function purchaseItem(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
     const { kind, itemId } = req.body || {};
     if (kind !== "theme" && kind !== "avatar") {
@@ -491,6 +506,7 @@ async function purchaseItem(req, res, next) {
 // ==========================================
 
 async function equipItem(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
     const { kind, itemId } = req.body || {};
     if (kind !== "theme" && kind !== "avatar") {
@@ -535,6 +551,7 @@ async function equipItem(req, res, next) {
 // ==========================================
 
 async function updateSettings(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
     const user = await User.findById(req.params.uid);
     if (!user) {
