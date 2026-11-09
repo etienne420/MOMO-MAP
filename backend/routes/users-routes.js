@@ -1,16 +1,9 @@
 import express from "express";
 import usersController from "../controllers/users-controller.js";
 import checkAuth from "../middleware/check-auth.js";
+import { authorizeRoles } from "../middleware/auth.js";
 
 const router = express.Router();
-
-// ==========================================
-// CONSULTER LES UTILISATEURS
-// ==========================================
-
-router.get("/", usersController.getUsers);
-
-router.get("/:uid", usersController.getUserById);
 
 // Catalogue de la boutique (public)
 router.get("/shop/catalog", usersController.getShopCatalog);
@@ -30,6 +23,11 @@ router.post("/register", usersController.register);
 // ==========================================
 
 router.use(checkAuth);
+
+// Lister tous les utilisateurs (réservé aux administrateurs)
+router.get("/", authorizeRoles("admin"), usersController.getUsers);
+
+router.get("/:uid", usersController.getUserById);
 
 // Modifier le thème actuel d'un utilisateur
 router.patch("/:uid/theme", usersController.updateTheme);
