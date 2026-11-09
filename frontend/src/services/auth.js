@@ -104,11 +104,11 @@ async function requestAuth(path, credentials) {
 }
 
 export function signIn(credentials) {
-  return requestAuth('/auth/login', credentials)
+  return requestAuth('/api/users/login', credentials)
 }
 
 export function signUp(credentials) {
-  return requestAuth('/auth/register', credentials)
+  return requestAuth('/api/users/register', credentials)
 }
 
 export function getAuthToken() {

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const VALID_ROLES = new Set(["user", "admin"]);
 
@@ -49,6 +50,16 @@ export function authenticateToken({ jwtSecret = process.env.JWT_SECRET } = {}) {
     }
 
     req.auth = { userId: claims.sub, role: claims.role };
+    return next();
+  };
+}
+
+export function validateObjectIdParam(paramName = "uid") {
+  return (req, res, next) => {
+    const value = req.params?.[paramName];
+    if (!mongoose.Types.ObjectId.isValid(value)) {
+      return res.status(400).json({ message: "Identifiant invalide." });
+    }
     return next();
   };
 }
