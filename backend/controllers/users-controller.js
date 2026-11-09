@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import User from "../models/users.js";
 import Theme from "../models/theme.js";
 import Avatar from "../models/avatar.js";
@@ -414,6 +415,9 @@ async function equipItem(req, res, next) {
     const { kind, itemId } = req.body || {};
     if (kind !== "theme" && kind !== "avatar") {
       return res.status(400).json({ message: "Type d'article invalide." });
+    }
+    if (itemId !== null && !mongoose.isValidObjectId(itemId)) {
+      return res.status(400).json({ message: "Identifiant d'article invalide." });
     }
 
     const ownedField = kind === "theme" ? "ownedThemes" : "ownedAvatars";
