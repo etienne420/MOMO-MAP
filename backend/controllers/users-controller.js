@@ -370,26 +370,34 @@ async function purchaseItem(req, res, next) {
       return res.status(404).json({ message: "Article introuvable." });
     }
 
-    const user = await User.findById(req.params.uid);
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur introuvable." });
-    }
-
     const ownedField = kind === "theme" ? "ownedThemes" : "ownedAvatars";
-    const alreadyOwned = user[ownedField].some(
-      (id) => id.toString() === itemId,
-    );
-    if (alreadyOwned) {
-      return res.status(409).json({ message: "Article déjà possédé." });
-    }
 
-    if (user.tokens < item.prix) {
+    // Mise à jour atomique : le filtre garantit que l'utilisateur possède
+    // assez de jetons et ne possède pas déjà l'article au moment de l'écriture.
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.uid,
+        tokens: { $gte: item.prix },
+        [ownedField]: { $ne: item._id },
+      },
+      {
+        $inc: { tokens: -item.prix },
+        $addToSet: { [ownedField]: item._id },
+      },
+      { new: true },
+    );
+
+    if (!user) {
+      // Distinguer les causes d'échec pour un message clair.
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+      if (existing[ownedField].some((id) => id.toString() === itemId)) {
+        return res.status(409).json({ message: "Article déjà possédé." });
+      }
       return res.status(400).json({ message: "Jetons insuffisants." });
     }
-
-    user.tokens -= item.prix;
-    user[ownedField].push(item._id);
-    await user.save();
 
     res.json({ user: getPublicUser(user) });
   } catch (error) {
@@ -408,27 +416,30 @@ async function equipItem(req, res, next) {
       return res.status(400).json({ message: "Type d'article invalide." });
     }
 
-    const user = await User.findById(req.params.uid);
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur introuvable." });
-    }
-
     const ownedField = kind === "theme" ? "ownedThemes" : "ownedAvatars";
     const equipField = kind === "theme" ? "themeActuel" : "avatarActuel";
 
-    if (itemId === null) {
-      user[equipField] = null;
-    } else {
-      const owned = user[ownedField].some(
-        (id) => id.toString() === itemId,
-      );
-      if (!owned) {
-        return res.status(403).json({ message: "Article non possédé." });
-      }
-      user[equipField] = itemId;
+    // Mise à jour atomique : le filtre vérifie la possession au moment de
+    // l'écriture, évitant une course entre la vérification et le save().
+    const filter = { _id: req.params.uid };
+    if (itemId !== null) {
+      filter[ownedField] = itemId;
     }
 
-    await user.save();
+    const user = await User.findOneAndUpdate(
+      filter,
+      { $set: { [equipField]: itemId === null ? null : itemId } },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+      return res.status(403).json({ message: "Article non possédé." });
+    }
+
     res.json({ user: getPublicUser(user) });
   } catch (error) {
     next(error);
