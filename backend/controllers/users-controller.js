@@ -259,15 +259,55 @@ async function login(req, res, next) {
       });
     }
 
-    // Ajouter 1 token après chaque connexion réussie
-    user.tokens += 1;
-
-    await user.save();
-
     return res.json({
       token: createAccessToken(user, jwtSecret),
       user: getPublicUser(user),
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// BONUS QUOTIDIEN
+// ==========================================
+
+const DAILY_BONUS_TOKENS = 1;
+
+async function claimDailyBonus(req, res, next) {
+  try {
+    const now = new Date();
+    const startOfDay = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+
+    // Atomique : n'accorde le bonus que si le dernier bonus date d'avant aujourd'hui.
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.uid,
+        $or: [
+          { lastDailyBonusAt: null },
+          { lastDailyBonusAt: { $lt: startOfDay } },
+        ],
+      },
+      {
+        $inc: { tokens: DAILY_BONUS_TOKENS },
+        $set: { lastDailyBonusAt: now },
+      },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+      return res.status(409).json({
+        message: "Bonus quotidien déjà réclamé aujourd'hui.",
+      });
+    }
+
+    res.json({ user: getPublicUser(user) });
   } catch (error) {
     next(error);
   }
@@ -535,6 +575,7 @@ const usersController = {
   purchaseItem,
   equipItem,
   updateSettings,
+  claimDailyBonus,
 };
 
 export default usersController;

@@ -215,6 +215,12 @@ export function equipItem(uid, kind, itemId) {
   })
 }
 
+export function claimDailyBonus(uid) {
+  return authedRequest(`/api/users/${uid}/daily-bonus`, {
+    method: "POST",
+  })
+}
+
 export function updateUserSettings(uid, settings) {
   return authedRequest(`/api/users/${uid}/settings`, {
     method: "PATCH",

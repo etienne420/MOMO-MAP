@@ -5,9 +5,6 @@ import { authorizeRoles, validateObjectIdParam } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Catalogue de la boutique (public)
-router.get("/shop/catalog", usersController.getShopCatalog);
-
 // ==========================================
 // AUTHENTIFICATION
 // ==========================================
@@ -27,6 +24,9 @@ router.use(checkAuth);
 // Valide que :uid est un ObjectId MongoDB valide (400 sinon)
 router.use("/:uid", validateObjectIdParam("uid"));
 
+// Catalogue de la boutique (authentification requise)
+router.get("/shop/catalog", usersController.getShopCatalog);
+
 // Lister tous les utilisateurs (réservé aux administrateurs)
 router.get("/", authorizeRoles("admin"), usersController.getUsers);
 
@@ -44,5 +44,8 @@ router.patch("/:uid/shop/equip", usersController.equipItem);
 
 // Préférences
 router.patch("/:uid/settings", usersController.updateSettings);
+
+// Bonus quotidien (1 jeton par jour)
+router.post("/:uid/daily-bonus", usersController.claimDailyBonus);
 
 export default router;
