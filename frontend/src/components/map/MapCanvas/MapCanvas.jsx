@@ -1,8 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './MapCanvas.css'
 
-export default function MapCanvas() {
+export default function MapCanvas({ theme = null }) {
   const containerRef = useRef(null)
+
+  const gridColor = theme?.gridColor || '#dadce0'
+  const subgridColor = theme?.subgridColor || 'rgba(60, 64, 67, 0.08)'
+  const crosshairColor = theme?.crosshairColor || '#9aa0a6'
+  const bgColor = theme?.backgroundColor || '#f1f3f4'
+  const animate = theme?.animate && !theme?.reducedMotion
 
   // Pan and Zoom state
   const [pan, setPan] = useState({ x: 0, y: 0 })
@@ -163,7 +169,8 @@ export default function MapCanvas() {
   return (
     <div
       ref={containerRef}
-      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''}`}
+      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''} ${animate ? 'is-animated' : ''}`}
+      style={{ backgroundColor: bgColor }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -187,7 +194,7 @@ export default function MapCanvas() {
             <path
               d="M 20 0 L 0 0 0 20"
               fill="none"
-              stroke="rgba(60, 64, 67, 0.08)"
+              stroke={subgridColor}
               strokeWidth="0.8"
             />
           </pattern>
@@ -205,12 +212,12 @@ export default function MapCanvas() {
             <path
               d="M 100 0 L 0 0 0 100"
               fill="none"
-              stroke="#dadce0"
+              stroke={gridColor}
               strokeWidth="1"
             />
             {/* Crosshair at vertex (+) */}
-            <line x1="-5" y1="0" x2="5" y2="0" stroke="#9aa0a6" strokeWidth="1.2" />
-            <line x1="0" y1="-5" x2="0" y2="5" stroke="#9aa0a6" strokeWidth="1.2" />
+            <line x1="-5" y1="0" x2="5" y2="0" stroke={crosshairColor} strokeWidth="1.2" />
+            <line x1="0" y1="-5" x2="0" y2="5" stroke={crosshairColor} strokeWidth="1.2" />
           </pattern>
         </defs>
 
