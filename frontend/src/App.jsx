@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import LoginPage from './pages/LoginPage/LoginPage'
 import SignUpPage from './pages/SignUpPage/SignUpPage'
 import MapPage from './pages/MapPage/MapPage'
+import ShopPage from './pages/ShopPage/ShopPage'
+import SettingsPage from './pages/SettingsPage/SettingsPage'
 import './App.css'
 
 function LoginRoute() {
@@ -40,6 +42,8 @@ function App() {
         <Route path="/signup" element={<SignUpRoute />} />
         <Route path="/register" element={<Navigate to="/signup" replace />} />
         <Route path="/map" element={<MapPage />} />
+        <Route path="/shop" element={<ShopPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

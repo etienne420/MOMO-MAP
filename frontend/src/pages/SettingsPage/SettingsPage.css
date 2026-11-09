@@ -1,0 +1,47 @@
+.settings-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: var(--color-bg-page, #fbfbfd);
+  font-family: var(--font-family-base);
+}
+
+.settings-page__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.settings-page__back {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.settings-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 520px;
+}
+
+.settings-section h2 { margin-top: 0; font-size: 18px; }
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.settings-row:last-of-type { border-bottom: none; }
+
+.settings-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #64748b;
+}

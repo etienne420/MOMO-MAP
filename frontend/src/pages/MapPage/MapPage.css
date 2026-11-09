@@ -60,6 +60,30 @@
   box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
 }
 
+.map-page-sidebar__nav {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.map-page-nav-btn {
+  flex: 1;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #18181b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.map-page-nav-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
 @media (max-width: 640px) {
   .map-page-screen {
     padding-left: 16px;

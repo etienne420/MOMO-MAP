@@ -165,3 +165,66 @@ export function getSessionRole() {
 export function clearAuthSession() {
   window.sessionStorage.removeItem(SESSION_TOKEN_KEY)
 }
+
+async function authedRequest(path, { method = "GET", body } = {}) {
+  const token = getAuthToken()
+  if (!token) {
+    throw new Error("Session expirée. Veuillez vous reconnecter.")
+  }
+
+  let response
+  try {
+    response = await fetch(getApiUrl(path), {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error("Impossible de joindre le serveur.")
+    }
+    throw error
+  }
+
+  const text = await response.text()
+  const data = text ? JSON.parse(text) : {}
+  if (!response.ok) {
+    throw new Error(data.message || `Erreur HTTP ${response.status}.`)
+  }
+  return data
+}
+
+export function fetchShopCatalog() {
+  return authedRequest("/api/users/shop/catalog")
+}
+
+export function purchaseItem(uid, kind, itemId) {
+  return authedRequest(`/api/users/${uid}/shop/purchase`, {
+    method: "POST",
+    body: { kind, itemId },
+  })
+}
+
+export function equipItem(uid, kind, itemId) {
+  return authedRequest(`/api/users/${uid}/shop/equip`, {
+    method: "PATCH",
+    body: { kind, itemId },
+  })
+}
+
+export function updateUserSettings(uid, settings) {
+  return authedRequest(`/api/users/${uid}/settings`, {
+    method: "PATCH",
+    body: { settings },
+  })
+}
+
+export function getCurrentUserId() {
+  const token = getAuthSession().token
+  if (!token) return null
+  const claims = getTokenClaims(token)
+  return claims.sub || null
+}
