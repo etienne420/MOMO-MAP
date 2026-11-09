@@ -88,7 +88,13 @@ export default function ShopPage() {
               <h3 className="shop-card__name">{item.nom}</h3>
               <p className="shop-card__price">{item.prix} jetons</p>
               {isEquipped ? (
-                <button className="shop-card__btn is-equipped" disabled>Équipé</button>
+                <button
+                  className="shop-card__btn is-equipped"
+                  disabled={busyId === item._id}
+                  onClick={() => handleEquip(kind, null)}
+                >
+                  Retirer
+                </button>
               ) : isOwned ? (
                 <button
                   className="shop-card__btn"

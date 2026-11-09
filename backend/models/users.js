@@ -22,12 +22,15 @@ const userSchema = new mongoose.Schema({
     default: "user",
     required: true,
   },
-  tokens: { type: Number, default: 0 },
-  themeActuel: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Theme",
-    default: null,
-  },
+  tokens: {                                                                                               
+      type: Number,                                                                                         
+      default: 1,                                                                                           
+      min: 0,                                                                                               
+    },                                                                                                      
+    lastDailyBonusAt: {                                                                                     
+      type: Date,                                                                                           
+      default: null,                                                                                        
+    },             
   avatarActuel: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Avatar",
