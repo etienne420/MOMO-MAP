@@ -1,7 +1,7 @@
 import express from "express";
 import usersController from "../controllers/users-controller.js";
 import checkAuth from "../middleware/check-auth.js";
-import { authorizeRoles } from "../middleware/auth.js";
+import { authorizeRoles, validateObjectIdParam } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -23,6 +23,9 @@ router.post("/register", usersController.register);
 // ==========================================
 
 router.use(checkAuth);
+
+// Valide que :uid est un ObjectId MongoDB valide (400 sinon)
+router.use("/:uid", validateObjectIdParam("uid"));
 
 // Lister tous les utilisateurs (réservé aux administrateurs)
 router.get("/", authorizeRoles("admin"), usersController.getUsers);
