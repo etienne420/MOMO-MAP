@@ -52,8 +52,8 @@ export function validateSignUpForm(formData) {
 
   if (!formData.password) {
     errors.password = 'Please enter a password.'
-  } else if (formData.password !== 'test' && formData.password.length < 4) {
-    errors.password = 'Password must be at least 4 characters.'
+  } else if (formData.password !== 'test' && formData.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters.'
   }
 
   return {
