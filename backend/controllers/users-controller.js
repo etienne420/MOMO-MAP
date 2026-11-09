@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import User from "../models/users.js";
+import Theme from "../models/theme.js";
+import Avatar from "../models/avatar.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INSTITUTIONAL_DOMAIN = "cmontmorency.qc.ca";
@@ -12,6 +15,14 @@ const BCRYPT_ROUNDS = 12;
 
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function assertOwnership(req, res) {
+  if (req.auth?.userId !== req.params.uid) {
+    res.status(403).json({ message: "Accès interdit." });
+    return false;
+  }
+  return true;
 }
 
 // Vérifier le courriel institutionnel
@@ -50,6 +61,7 @@ function createAccessToken(user, secret) {
 
   return jwt.sign(
     {
+      sub: user._id.toString(),
       role: user.role === "admin" ? "admin" : "user",
       username: user.username,
     },
@@ -57,7 +69,6 @@ function createAccessToken(user, secret) {
     {
       algorithm: "HS256",
       expiresIn: "1h",
-      subject: user._id.toString(),
     },
   );
 }
@@ -72,6 +83,9 @@ function getPublicUser(user) {
     tokens: user.tokens,
     themeActuel: user.themeActuel,
     avatarActuel: user.avatarActuel,
+    ownedThemes: user.ownedThemes,
+    ownedAvatars: user.ownedAvatars,
+    settings: user.settings,
   };
 }
 
@@ -94,6 +108,7 @@ async function getUsers(req, res, next) {
 // ==========================================
 
 async function getUserById(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
     const user = await User.findById(req.params.uid)
       .select("-password")
@@ -191,8 +206,10 @@ async function register(req, res, next) {
       tokens: 1,
     });
 
+    const accessToken = createAccessToken(user, jwtSecret);
     return res.status(201).json({
-      token: createAccessToken(user, jwtSecret),
+      accessToken,
+      token: accessToken,
       user: getPublicUser(user),
     });
   } catch (error) {
@@ -253,15 +270,58 @@ async function login(req, res, next) {
       });
     }
 
-    // Ajouter 1 token après chaque connexion réussie
-    user.tokens += 1;
-
-    await user.save();
+    const accessToken = createAccessToken(user, jwtSecret);
 
     return res.json({
-      token: createAccessToken(user, jwtSecret),
+      accessToken,
+      token: accessToken,
       user: getPublicUser(user),
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// BONUS QUOTIDIEN
+// ==========================================
+
+const DAILY_BONUS_TOKENS = 1;
+
+async function claimDailyBonus(req, res, next) {
+  try {
+    const now = new Date();
+    const startOfDay = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+
+    // Atomique : n'accorde le bonus que si le dernier bonus date d'avant aujourd'hui.
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.uid,
+        $or: [
+          { lastDailyBonusAt: null },
+          { lastDailyBonusAt: { $lt: startOfDay } },
+        ],
+      },
+      {
+        $inc: { tokens: DAILY_BONUS_TOKENS },
+        $set: { lastDailyBonusAt: now },
+      },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+      return res.status(409).json({
+        message: "Bonus quotidien déjà réclamé aujourd'hui.",
+      });
+    }
+
+    res.json({ user: getPublicUser(user) });
   } catch (error) {
     next(error);
   }
@@ -272,18 +332,39 @@ async function login(req, res, next) {
 // ==========================================
 
 async function updateTheme(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
-    const user = await User.findById(req.params.uid);
+    const themeId = req.body?.themeActuel ?? null;
 
-    if (!user) {
-      return res.status(404).json({
-        message: "Utilisateur introuvable.",
+    if (themeId !== null && !mongoose.isValidObjectId(themeId)) {
+      return res.status(400).json({
+        message: "Identifiant de thème invalide.",
       });
     }
 
-    user.themeActuel = req.body.themeActuel || null;
+    // Le filtre vérifie la possession au moment de l'écriture.
+    const filter = { _id: req.params.uid };
+    if (themeId !== null) {
+      filter.ownedThemes = themeId;
+    }
 
-    await user.save();
+    const user = await User.findOneAndUpdate(
+      filter,
+      { $set: { themeActuel: themeId } },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({
+          message: "Utilisateur introuvable.",
+        });
+      }
+      return res.status(403).json({
+        message: "Thème non possédé.",
+      });
+    }
 
     const updatedUser = await User.findById(user._id)
       .select("-password")
@@ -303,18 +384,39 @@ async function updateTheme(req, res, next) {
 // ==========================================
 
 async function updateAvatar(req, res, next) {
+  if (!assertOwnership(req, res)) return;
   try {
-    const user = await User.findById(req.params.uid);
+    const avatarId = req.body?.avatarActuel ?? null;
 
-    if (!user) {
-      return res.status(404).json({
-        message: "Utilisateur introuvable.",
+    if (avatarId !== null && !mongoose.isValidObjectId(avatarId)) {
+      return res.status(400).json({
+        message: "Identifiant d'avatar invalide.",
       });
     }
 
-    user.avatarActuel = req.body.avatarActuel || null;
+    // Le filtre vérifie la possession au moment de l'écriture.
+    const filter = { _id: req.params.uid };
+    if (avatarId !== null) {
+      filter.ownedAvatars = avatarId;
+    }
 
-    await user.save();
+    const user = await User.findOneAndUpdate(
+      filter,
+      { $set: { avatarActuel: avatarId } },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({
+          message: "Utilisateur introuvable.",
+        });
+      }
+      return res.status(403).json({
+        message: "Avatar non possédé.",
+      });
+    }
 
     const updatedUser = await User.findById(user._id)
       .select("-password")
@@ -324,6 +426,154 @@ async function updateAvatar(req, res, next) {
     res.json({
       user: updatedUser,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// CATALOGUE DE LA BOUTIQUE
+// ==========================================
+
+async function getShopCatalog(req, res, next) {
+  try {
+    const [themes, avatars] = await Promise.all([
+      Theme.find({}).lean(),
+      Avatar.find({}).lean(),
+    ]);
+    res.json({ themes, avatars });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// ACHETER UN ARTICLE
+// ==========================================
+
+async function purchaseItem(req, res, next) {
+  if (!assertOwnership(req, res)) return;
+  try {
+    const { kind, itemId } = req.body || {};
+    if (kind !== "theme" && kind !== "avatar") {
+      return res.status(400).json({ message: "Type d'article invalide." });
+    }
+    if (typeof itemId !== "string" || !itemId) {
+      return res.status(400).json({ message: "Identifiant d'article requis." });
+    }
+
+    const Model = kind === "theme" ? Theme : Avatar;
+    const item = await Model.findById(itemId);
+    if (!item) {
+      return res.status(404).json({ message: "Article introuvable." });
+    }
+
+    const ownedField = kind === "theme" ? "ownedThemes" : "ownedAvatars";
+
+    // Mise à jour atomique : le filtre garantit que l'utilisateur possède
+    // assez de jetons et ne possède pas déjà l'article au moment de l'écriture.
+    const user = await User.findOneAndUpdate(
+      {
+        _id: req.params.uid,
+        tokens: { $gte: item.prix },
+        [ownedField]: { $ne: item._id },
+      },
+      {
+        $inc: { tokens: -item.prix },
+        $addToSet: { [ownedField]: item._id },
+      },
+      { new: true },
+    );
+
+    if (!user) {
+      // Distinguer les causes d'échec pour un message clair.
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+      if (existing[ownedField].some((id) => id.toString() === itemId)) {
+        return res.status(409).json({ message: "Article déjà possédé." });
+      }
+      return res.status(400).json({ message: "Jetons insuffisants." });
+    }
+
+    res.json({ user: getPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// ÉQUIPER UN THÈME OU UN AVATAR
+// ==========================================
+
+async function equipItem(req, res, next) {
+  if (!assertOwnership(req, res)) return;
+  try {
+    const { kind, itemId } = req.body || {};
+    if (kind !== "theme" && kind !== "avatar") {
+      return res.status(400).json({ message: "Type d'article invalide." });
+    }
+    if (itemId !== null && !mongoose.isValidObjectId(itemId)) {
+      return res.status(400).json({ message: "Identifiant d'article invalide." });
+    }
+
+    const ownedField = kind === "theme" ? "ownedThemes" : "ownedAvatars";
+    const equipField = kind === "theme" ? "themeActuel" : "avatarActuel";
+
+    // Mise à jour atomique : le filtre vérifie la possession au moment de
+    // l'écriture, évitant une course entre la vérification et le save().
+    const filter = { _id: req.params.uid };
+    if (itemId !== null) {
+      filter[ownedField] = itemId;
+    }
+
+    const user = await User.findOneAndUpdate(
+      filter,
+      { $set: { [equipField]: itemId === null ? null : itemId } },
+      { new: true },
+    );
+
+    if (!user) {
+      const existing = await User.findById(req.params.uid);
+      if (!existing) {
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+      return res.status(403).json({ message: "Article non possédé." });
+    }
+
+    res.json({ user: getPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ==========================================
+// METTRE À JOUR LES PRÉFÉRENCES
+// ==========================================
+
+async function updateSettings(req, res, next) {
+  if (!assertOwnership(req, res)) return;
+  try {
+    const user = await User.findById(req.params.uid);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable." });
+    }
+
+    const incoming = req.body?.settings;
+    if (!isObject(incoming)) {
+      return res.status(400).json({ message: "Préférences invalides." });
+    }
+
+    const allowed = ["turnByTurnGuidance", "showSchoolInsights", "reducedMotion"];
+    for (const key of allowed) {
+      if (typeof incoming[key] === "boolean") {
+        user.settings[key] = incoming[key];
+      }
+    }
+
+    await user.save();
+    res.json({ user: getPublicUser(user) });
   } catch (error) {
     next(error);
   }
@@ -340,6 +590,11 @@ const usersController = {
   login,
   updateTheme,
   updateAvatar,
+  getShopCatalog,
+  purchaseItem,
+  equipItem,
+  updateSettings,
+  claimDailyBonus,
 };
 
 export default usersController;

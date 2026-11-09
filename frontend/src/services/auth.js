@@ -36,6 +36,16 @@ function getTokenExpiration(token) {
   return expiration * 1000
 }
 
+function storeAuthSession(token) {
+  try {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, token)
+  } catch {
+    throw new Error(
+      'La session a été créée, mais le navigateur ne permet pas de la conserver.',
+    )
+  }
+}
+
 async function requestAuth(path, credentials) {
   let response
   try {
@@ -88,23 +98,17 @@ async function requestAuth(path, credentials) {
     throw new Error('Le serveur a retourné un jeton JWT déjà expiré.')
   }
 
-  try {
-    window.sessionStorage.setItem(SESSION_TOKEN_KEY, token)
-  } catch {
-    throw new Error(
-      'La session a été créée, mais le navigateur ne permet pas de la conserver.',
-    )
-  }
+  storeAuthSession(token)
 
   return result
 }
 
 export function signIn(credentials) {
-  return requestAuth('/auth/login', credentials)
+  return requestAuth('/api/users/login', credentials)
 }
 
 export function signUp(credentials) {
-  return requestAuth('/auth/register', credentials)
+  return requestAuth('/api/users/register', credentials)
 }
 
 export function getAuthToken() {
@@ -164,4 +168,97 @@ export function getSessionRole() {
 
 export function clearAuthSession() {
   window.sessionStorage.removeItem(SESSION_TOKEN_KEY)
+}
+
+async function authedRequest(path, { method = "GET", body } = {}) {
+  const token = getAuthToken()
+  if (!token) {
+    throw new Error("Session expirée. Veuillez vous reconnecter.")
+  }
+
+  let response
+  try {
+    response = await fetch(getApiUrl(path), {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error("Impossible de joindre le serveur.")
+    }
+    throw error
+  }
+
+  const text = await response.text()
+  let data = {}
+  if (text) {
+    try {
+      data = JSON.parse(text)
+    } catch {
+      data = {}
+    }
+  }
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthSession()
+      throw new Error('Session expirée. Veuillez vous reconnecter.')
+    }
+    throw new Error(data.message || `Erreur HTTP ${response.status}.`)
+  }
+  return data
+}
+
+export function fetchShopCatalog() {
+  return authedRequest("/api/users/shop/catalog")
+}
+
+export function purchaseItem(uid, kind, itemId) {
+  return authedRequest(`/api/users/${uid}/shop/purchase`, {
+    method: "POST",
+    body: { kind, itemId },
+  })
+}
+
+export function equipItem(uid, kind, itemId) {
+  return authedRequest(`/api/users/${uid}/shop/equip`, {
+    method: "PATCH",
+    body: { kind, itemId },
+  })
+}
+
+export function claimDailyBonus(uid) {
+  return authedRequest(`/api/users/${uid}/daily-bonus`, {
+    method: "POST",
+  })
+}
+
+export function updateUserSettings(uid, settings) {
+  return authedRequest(`/api/users/${uid}/settings`, {
+    method: "PATCH",
+    body: { settings },
+  })
+}
+
+export function getCurrentUserId() {
+  const token = getAuthToken()
+  if (!token) return null
+  try {
+    const claims = getTokenClaims(token)
+    return typeof claims.sub === 'string' && claims.sub ? claims.sub : null
+  } catch {
+    clearAuthSession()
+    return null
+  }
+}
+
+export function fetchCurrentUser() {
+  const uid = getCurrentUserId()
+  if (!uid) {
+    return Promise.reject(new Error('Session expirée. Veuillez vous reconnecter.'))
+  }
+  return authedRequest(`/api/users/${uid}`)
 }

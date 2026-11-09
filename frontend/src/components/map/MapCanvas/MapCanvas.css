@@ -23,6 +23,15 @@
   display: block;
 }
 
+.map-canvas-container.is-animated .map-canvas-svg {
+  animation: map-pulse 6s ease-in-out infinite;
+}
+
+@keyframes map-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.92; }
+}
+
 /* Floating Google Maps Zoom & Recenter Controls - Centered Vertically on Right */
 .google-maps-controls-right {
   position: absolute;

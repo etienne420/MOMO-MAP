@@ -22,7 +22,15 @@ const userSchema = new mongoose.Schema({
     default: "user",
     required: true,
   },
-  tokens: { type: Number, default: 0 },
+  tokens: {                                                                                               
+      type: Number,                                                                                         
+      default: 1,                                                                                           
+      min: 0,                                                                                               
+    },                                                                                                      
+    lastDailyBonusAt: {                                                                                     
+      type: Date,                                                                                           
+      default: null,                                                                                        
+    },             
   themeActuel: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Theme",
@@ -32,6 +40,13 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Avatar",
     default: null,
+  },
+  ownedThemes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Theme" }],
+  ownedAvatars: [{ type: mongoose.Schema.Types.ObjectId, ref: "Avatar" }],
+  settings: {
+    turnByTurnGuidance: { type: Boolean, default: true },
+    showSchoolInsights: { type: Boolean, default: true },
+    reducedMotion: { type: Boolean, default: false },
   },
 });
 
