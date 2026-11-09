@@ -4,7 +4,7 @@ import AuthHeader from '../../components/auth/AuthHeader/AuthHeader'
 import RoutePanel from '../../components/map/RoutePanel/RoutePanel'
 import AmenitiesPanel from '../../components/map/AmenitiesPanel/AmenitiesPanel'
 import MapCanvas from '../../components/map/MapCanvas/MapCanvas'
-import { getCurrentUserId } from '../../services/auth'
+import { getCurrentUserId, fetchCurrentUser } from '../../services/auth'
 import './MapPage.css'
 
 export default function MapPage() {
@@ -13,12 +13,17 @@ export default function MapPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const uid = getCurrentUserId()
-    if (!uid) return
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/${uid}`)
-      .then((r) => r.json())
-      .then((u) => setTheme(u.themeActuel || null))
-      .catch(() => {})
+    if (!getCurrentUserId()) return
+
+    const load = () => {
+      fetchCurrentUser()
+        .then((u) => setTheme(u.themeActuel || null))
+        .catch(() => setTheme(null))
+    }
+
+    load()
+    window.addEventListener('focus', load)
+    return () => window.removeEventListener('focus', load)
   }, [])
 
   return (

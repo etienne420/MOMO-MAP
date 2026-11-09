@@ -36,6 +36,16 @@ function getTokenExpiration(token) {
   return expiration * 1000
 }
 
+function storeAuthSession(token) {
+  try {
+    window.sessionStorage.setItem(SESSION_TOKEN_KEY, token)
+  } catch {
+    throw new Error(
+      'La session a été créée, mais le navigateur ne permet pas de la conserver.',
+    )
+  }
+}
+
 async function requestAuth(path, credentials) {
   let response
   try {
@@ -88,13 +98,7 @@ async function requestAuth(path, credentials) {
     throw new Error('Le serveur a retourné un jeton JWT déjà expiré.')
   }
 
-  try {
-    window.sessionStorage.setItem(SESSION_TOKEN_KEY, token)
-  } catch {
-    throw new Error(
-      'La session a été créée, mais le navigateur ne permet pas de la conserver.',
-    )
-  }
+  storeAuthSession(token)
 
   return result
 }
@@ -190,8 +194,19 @@ async function authedRequest(path, { method = "GET", body } = {}) {
   }
 
   const text = await response.text()
-  const data = text ? JSON.parse(text) : {}
+  let data = {}
+  if (text) {
+    try {
+      data = JSON.parse(text)
+    } catch {
+      data = {}
+    }
+  }
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthSession()
+      throw new Error('Session expirée. Veuillez vous reconnecter.')
+    }
     throw new Error(data.message || `Erreur HTTP ${response.status}.`)
   }
   return data
@@ -223,8 +238,21 @@ export function updateUserSettings(uid, settings) {
 }
 
 export function getCurrentUserId() {
-  const token = getAuthSession().token
+  const token = getAuthToken()
   if (!token) return null
-  const claims = getTokenClaims(token)
-  return claims.sub || null
+  try {
+    const claims = getTokenClaims(token)
+    return typeof claims.sub === 'string' && claims.sub ? claims.sub : null
+  } catch {
+    clearAuthSession()
+    return null
+  }
+}
+
+export function fetchCurrentUser() {
+  const uid = getCurrentUserId()
+  if (!uid) {
+    return Promise.reject(new Error('Session expirée. Veuillez vous reconnecter.'))
+  }
+  return authedRequest(`/api/users/${uid}`)
 }

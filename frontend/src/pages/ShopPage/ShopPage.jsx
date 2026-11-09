@@ -5,28 +5,40 @@ import {
   purchaseItem,
   equipItem,
   getCurrentUserId,
+  fetchCurrentUser,
 } from '../../services/auth'
 import './ShopPage.css'
 
 export default function ShopPage() {
   const navigate = useNavigate()
-  const uid = getCurrentUserId()
+  const [uid, setUid] = useState(() => getCurrentUserId())
   const [catalog, setCatalog] = useState({ themes: [], avatars: [] })
   const [user, setUser] = useState(null)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
 
   useEffect(() => {
-    fetchShopCatalog()
-      .then(setCatalog)
-      .catch((e) => setError(e.message))
-  }, [])
+    const currentUid = getCurrentUserId()
+    if (!currentUid) {
+      navigate('/login', { replace: true })
+      return
+    }
+    setUid(currentUid)
+
+    fetchShopCatalog().then(setCatalog).catch((e) => setError(e.message))
+    fetchCurrentUser().then(setUser).catch((e) => setError(e.message))
+  }, [navigate])
 
   const handlePurchase = async (kind, itemId) => {
+    const currentUid = getCurrentUserId()
+    if (!currentUid) {
+      navigate('/login', { replace: true })
+      return
+    }
     setBusyId(itemId)
     setError('')
     try {
-      const { user: updated } = await purchaseItem(uid, kind, itemId)
+      const { user: updated } = await purchaseItem(currentUid, kind, itemId)
       setUser(updated)
     } catch (e) {
       setError(e.message)
@@ -36,10 +48,15 @@ export default function ShopPage() {
   }
 
   const handleEquip = async (kind, itemId) => {
+    const currentUid = getCurrentUserId()
+    if (!currentUid) {
+      navigate('/login', { replace: true })
+      return
+    }
     setBusyId(itemId)
     setError('')
     try {
-      const { user: updated } = await equipItem(uid, kind, itemId)
+      const { user: updated } = await equipItem(currentUid, kind, itemId)
       setUser(updated)
     } catch (e) {
       setError(e.message)
