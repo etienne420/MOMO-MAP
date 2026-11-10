@@ -9,6 +9,19 @@ const MAP_HEIGHT = momoRoomsData.viewBox.height // 4446
 const INSET_BOUNDS = momoRoomsData.insetBounds // { x: 1062.67, y: 1046.08, width: 3194, height: 2346 }
 const BUILDING_BOUNDS = momoRoomsData.buildingBounds // { minX: 2184, minY: 1870, maxX: 3501, maxY: 2664, cx: 2842.5, cy: 2267 }
 
+// Safe interior bounds of Layer 2 (<rect x="1062.67" y="1046.08" width="3194" height="2346" fill="white" />).
+// Inset by 8px on each side so the seam/edge of Layer 1 is never visible once Layer 2 opens.
+const SAFE_INSET = {
+  minX: INSET_BOUNDS.x + 8, // 1070.67
+  minY: INSET_BOUNDS.y + 8, // 1054.08
+  width: INSET_BOUNDS.width - 16, // 3178
+  height: INSET_BOUNDS.height - 16, // 2330
+  maxX: INSET_BOUNDS.x + INSET_BOUNDS.width - 8, // 4248.67
+  maxY: INSET_BOUNDS.y + INSET_BOUNDS.height - 8, // 3384.08
+  cx: INSET_BOUNDS.x + INSET_BOUNDS.width / 2, // 2659.67
+  cy: INSET_BOUNDS.y + INSET_BOUNDS.height / 2, // 2219.08
+}
+
 // Extract inner SVG contents and structure MAP-MAIN into controllable Russian-doll layers
 function extractInnerSvg(rawSvg) {
   const match = rawSvg.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i)
@@ -51,17 +64,6 @@ const {
   defsMarkup: MAIN_DEFS_MARKUP,
 } = buildLayeredMainSvg(mapMainSvgRaw)
 
-// Zoom thresholds (relative to initial minZoom = 1.0x where the SVG covers the whole viewport)
-// The user requested:
-// - Start the most unzoomed possible, with the whole grid covered by the map so you can't unzoom outside the SVG
-// - Only need to zoom a couple of times to progress through the Russian-doll stages:
-//   * Stage 1 (1.0x): Unzoomed outer map fills the entire screen
-//   * Stage 2 (>= 1.35x, ~1 zoom step in): Zoomed campus inset map appears with smooth transition animation
-//   * Stage 3 (>= 2.1x, ~2-3 zoom steps in): Building rooms appear
-//   * Stage 4 (>= 3.4x, ~4-5 zoom steps in): Specific room vector names appear
-const ZOOMED_MAP_THRESHOLD = 1.35
-const ROOMS_VISIBLE_THRESHOLD = 2.1
-const ROOM_NAMES_THRESHOLD = 3.4
 const MAX_RELATIVE_ZOOM = 12
 
 export default function MapCanvas({
@@ -80,7 +82,6 @@ export default function MapCanvas({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(0.35)
   const [isDragging, setIsDragging] = useState(false)
-  const [isSmoothTransitioning, setIsSmoothTransitioning] = useState(false)
   const [hoveredRoomId, setHoveredRoomId] = useState(null)
   const [focusedRoomId, setFocusedRoomId] = useState(null)
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 })
@@ -89,44 +90,57 @@ export default function MapCanvas({
   const dragStartRef = useRef({ x: 0, y: 0 })
   const currentPanRef = useRef({ x: 0, y: 0 })
   const currentZoomRef = useRef(0.35)
+  const targetPanRef = useRef({ x: 0, y: 0 })
+  const targetZoomRef = useRef(0.35)
+  const rafIdRef = useRef(null)
+  const lastFrameTimeRef = useRef(0)
   const minZoomRef = useRef(0.35)
   const viewportSizeRef = useRef({ width: 1280, height: 800 })
   const initialTouchDistanceRef = useRef(null)
   const initialTouchZoomRef = useRef(0.35)
-  const transitionTimeoutRef = useRef(null)
+  const initialTouchCenterRef = useRef({ x: 0, y: 0 })
+  const initialTouchPanRef = useRef({ x: 0, y: 0 })
+  const wheelGestureRef = useRef({
+    lastTime: 0,
+    screenX: 0,
+    screenY: 0,
+    worldX: 0,
+    worldY: 0,
+  })
 
-  useEffect(() => {
-    currentPanRef.current = pan
-  }, [pan])
-
-  useEffect(() => {
-    currentZoomRef.current = zoom
-  }, [zoom])
-
-  useEffect(() => {
-    minZoomRef.current = minZoom
-  }, [minZoom])
-
-  useEffect(() => {
-    viewportSizeRef.current = viewportSize
-  }, [viewportSize])
-
-  // Clamp pan so the user can never pan or unzoom outside the 5483x4446 SVG map boundaries
+  // Clamp pan so:
+  // 1) At minZoom (1.0x), the user cannot pan or unzoom outside the 5483x4446 Layer 1 boundaries.
+  // 2) As zoom approaches insetCoverZoom (where Layer 2 fills 100% of the screen), the allowed bounds
+  //    smoothly converge to SAFE_INSET so that when Layer 2 shows, 0 pixels of Layer 1 are visible
+  //    and the user can never pan outside Layer 2 to see Layer 1 behind it.
   const clampPan = useCallback((candidatePan, targetZoom, vp = viewportSizeRef.current) => {
-    const mapScreenW = MAP_WIDTH * targetZoom
-    const mapScreenH = MAP_HEIGHT * targetZoom
+    const outerCoverZoom = Math.max(vp.width / MAP_WIDTH, vp.height / MAP_HEIGHT)
+    const insetCoverZoom = Math.max(vp.width / SAFE_INSET.width, vp.height / SAFE_INSET.height)
 
-    let minX = vp.width - mapScreenW
-    let maxX = 0
-    if (mapScreenW <= vp.width) {
-      minX = (vp.width - mapScreenW) / 2
+    const zoomSpan = Math.max(insetCoverZoom - outerCoverZoom, 0.0001)
+    const t = Math.min(Math.max((targetZoom - outerCoverZoom) / zoomSpan, 0), 1)
+
+    const worldMinX = SAFE_INSET.minX * t
+    const worldMaxX = MAP_WIDTH + (SAFE_INSET.maxX - MAP_WIDTH) * t
+    const worldMinY = SAFE_INSET.minY * t
+    const worldMaxY = MAP_HEIGHT + (SAFE_INSET.maxY - MAP_HEIGHT) * t
+
+    const boxScreenW = (worldMaxX - worldMinX) * targetZoom
+    const boxScreenH = (worldMaxY - worldMinY) * targetZoom
+
+    let minX = vp.width - worldMaxX * targetZoom
+    let maxX = -worldMinX * targetZoom
+    if (boxScreenW <= vp.width) {
+      const worldCenterX = (worldMinX + worldMaxX) / 2
+      minX = vp.width / 2 - worldCenterX * targetZoom
       maxX = minX
     }
 
-    let minY = vp.height - mapScreenH
-    let maxY = 0
-    if (mapScreenH <= vp.height) {
-      minY = (vp.height - mapScreenH) / 2
+    let minY = vp.height - worldMaxY * targetZoom
+    let maxY = -worldMinY * targetZoom
+    if (boxScreenH <= vp.height) {
+      const worldCenterY = (worldMinY + worldMaxY) / 2
+      minY = vp.height / 2 - worldCenterY * targetZoom
       maxY = minY
     }
 
@@ -135,6 +149,72 @@ export default function MapCanvas({
       y: Math.min(Math.max(candidatePan.y, minY), maxY),
     }
   }, [])
+
+  const stopCameraAnimation = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    lastFrameTimeRef.current = 0
+  }, [])
+
+  // Smooth 60fps requestAnimationFrame camera interpolation loop for silky trackpad & button zooming
+  const startCameraAnimation = useCallback(() => {
+    if (rafIdRef.current !== null) return
+
+    const step = (now) => {
+      const dt = lastFrameTimeRef.current ? Math.min((now - lastFrameTimeRef.current) / 1000, 0.05) : 1 / 60
+      lastFrameTimeRef.current = now
+
+      // Frame-rate independent exponential damping (~0.18 per frame at 60fps)
+      const alpha = 1 - Math.exp(-12 * dt)
+
+      const curZ = currentZoomRef.current
+      const tgtZ = targetZoomRef.current
+      const curP = currentPanRef.current
+      const tgtP = targetPanRef.current
+
+      const zoomDiff = tgtZ - curZ
+      const panDiffX = tgtP.x - curP.x
+      const panDiffY = tgtP.y - curP.y
+
+      // Snap to target when very close
+      if (Math.abs(zoomDiff) < 0.00015 && Math.hypot(panDiffX, panDiffY) < 0.25) {
+        const finalPan = clampPan(tgtP, tgtZ, viewportSizeRef.current)
+        currentZoomRef.current = tgtZ
+        currentPanRef.current = finalPan
+        targetPanRef.current = finalPan
+        setZoom(tgtZ)
+        setPan(finalPan)
+        rafIdRef.current = null
+        lastFrameTimeRef.current = 0
+        return
+      }
+
+      const nextZ = curZ + zoomDiff * alpha
+      const nextP = clampPan(
+        {
+          x: curP.x + panDiffX * alpha,
+          y: curP.y + panDiffY * alpha,
+        },
+        nextZ,
+        viewportSizeRef.current
+      )
+
+      currentZoomRef.current = nextZ
+      currentPanRef.current = nextP
+      setZoom(nextZ)
+      setPan(nextP)
+
+      rafIdRef.current = requestAnimationFrame(step)
+    }
+
+    rafIdRef.current = requestAnimationFrame(step)
+  }, [clampPan])
+
+  useEffect(() => {
+    return () => stopCameraAnimation()
+  }, [stopCameraAnimation])
 
   // Compute cover scale so the SVG fills the entire screen ("the whole grid should be the map so you shouldnt be able to unzoom out the svg")
   const computeCoverView = useCallback((el) => {
@@ -174,14 +254,22 @@ export default function MapCanvas({
 
       if (!hasInitializedRef.current || resetPosition) {
         hasInitializedRef.current = true
+        stopCameraAnimation()
+        currentZoomRef.current = fit.minZoom
+        targetZoomRef.current = fit.minZoom
+        currentPanRef.current = fit.pan
+        targetPanRef.current = fit.pan
         setZoom(fit.minZoom)
         setPan(fit.pan)
       } else {
-        setZoom((prevZoom) => {
-          const nextZoom = Math.max(prevZoom, fit.minZoom)
-          setPan((prevPan) => clampPan(prevPan, nextZoom, fit.viewport))
-          return nextZoom
-        })
+        const nextZoom = Math.max(targetZoomRef.current, fit.minZoom)
+        const nextPan = clampPan(targetPanRef.current, nextZoom, fit.viewport)
+        currentZoomRef.current = nextZoom
+        targetZoomRef.current = nextZoom
+        currentPanRef.current = nextPan
+        targetPanRef.current = nextPan
+        setZoom(nextZoom)
+        setPan(nextPan)
       }
     }
 
@@ -190,27 +278,39 @@ export default function MapCanvas({
     const handleResize = () => applyCover(false)
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [computeCoverView, clampPan])
-
-  const triggerSmoothCamera = useCallback((durationMs = 450) => {
-    setIsSmoothTransitioning(true)
-    if (transitionTimeoutRef.current) {
-      clearTimeout(transitionTimeoutRef.current)
-    }
-    transitionTimeoutRef.current = setTimeout(() => {
-      setIsSmoothTransitioning(false)
-    }, durationMs)
-  }, [])
+  }, [computeCoverView, clampPan, stopCameraAnimation])
 
   // Relative zoom ratio (1.0 = most unzoomed starting state)
   const relativeZoom = useMemo(() => {
     return minZoom > 0 ? zoom / minZoom : 1
   }, [zoom, minZoom])
 
-  // Russian-doll stage states
-  const isZoomedMapVisible = relativeZoom >= ZOOMED_MAP_THRESHOLD
-  const isRoomsVisible = relativeZoom >= ROOMS_VISIBLE_THRESHOLD
-  const isRoomNamesGlobalZoom = relativeZoom >= ROOM_NAMES_THRESHOLD
+  // Exact zoom level where Layer 2 (SAFE_INSET: 3178x2330) fills 100% of the viewport
+  // so 0 pixels of Layer 1 can be seen around it.
+  const insetCoverZoom = useMemo(() => {
+    return Math.max(
+      viewportSize.width / SAFE_INSET.width,
+      viewportSize.height / SAFE_INSET.height
+    )
+  }, [viewportSize])
+
+  const insetCoverRelZoom = useMemo(() => {
+    return minZoom > 0 ? insetCoverZoom / minZoom : 1.73
+  }, [insetCoverZoom, minZoom])
+
+  const roomsVisibleThreshold = useMemo(() => {
+    return Math.max(insetCoverRelZoom * 1.35, 2.4)
+  }, [insetCoverRelZoom])
+
+  const roomNamesThreshold = useMemo(() => {
+    return Math.max(insetCoverRelZoom * 2.05, 3.6)
+  }, [insetCoverRelZoom])
+
+  // Russian-doll stage states:
+  // Layer 2 ONLY shows once zoomed in enough that Layer 1 cannot be seen at all (zoom >= insetCoverZoom)
+  const isZoomedMapVisible = zoom >= insetCoverZoom * 0.998
+  const isRoomsVisible = relativeZoom >= roomsVisibleThreshold
+  const isRoomNamesGlobalZoom = relativeZoom >= roomNamesThreshold
 
   // Calculate current viewport center and visible bounds in SVG world coordinates
   const visibleWorldBounds = useMemo(() => {
@@ -311,11 +411,14 @@ export default function MapCanvas({
         y: targetScreenY - worldY * clampedZoom,
       }
 
-      triggerSmoothCamera(480)
-      setZoom(parseFloat(clampedZoom.toFixed(5)))
-      setPan(clampPan(rawPan, clampedZoom, { width: rect.width, height: rect.height }))
+      const nextZoom = parseFloat(clampedZoom.toFixed(5))
+      const nextPan = clampPan(rawPan, nextZoom, { width: rect.width, height: rect.height })
+
+      targetZoomRef.current = nextZoom
+      targetPanRef.current = nextPan
+      startCameraAnimation()
     },
-    [triggerSmoothCamera, clampPan]
+    [clampPan, startCameraAnimation]
   )
 
   // If parent selects a room (e.g., via search), smoothly zoom to that room
@@ -334,7 +437,7 @@ export default function MapCanvas({
   // Mouse Drag Handlers
   const handleMouseDown = (e) => {
     if (e.button !== 0) return // Only primary click
-    setIsSmoothTransitioning(false)
+    stopCameraAnimation()
     setIsDragging(true)
     dragStartRef.current = {
       x: e.clientX - currentPanRef.current.x,
@@ -349,7 +452,10 @@ export default function MapCanvas({
         x: e.clientX - dragStartRef.current.x,
         y: e.clientY - dragStartRef.current.y,
       }
-      setPan(clampPan(candidatePan, currentZoomRef.current))
+      const clamped = clampPan(candidatePan, currentZoomRef.current)
+      currentPanRef.current = clamped
+      targetPanRef.current = clamped
+      setPan(clamped)
     },
     [isDragging, clampPan]
   )
@@ -390,19 +496,19 @@ export default function MapCanvas({
           setFocusedRoomId(rid)
           onSelectRoom?.(rid)
           const room = momoRoomsData.rooms.find((r) => r.id === rid)
-          if (room && relativeZoom < ROOM_NAMES_THRESHOLD * 1.3) {
-            zoomToWorldPoint(room.cx, room.cy, Math.max(ROOM_NAMES_THRESHOLD * 1.4, 4.8))
+          if (room && relativeZoom < roomNamesThreshold * 1.3) {
+            zoomToWorldPoint(room.cx, room.cy, Math.max(roomNamesThreshold * 1.4, 4.8))
           }
           return
         }
       }
     },
-    [isDragging, isRoomsVisible, relativeZoom, onSelectRoom, zoomToWorldPoint]
+    [isDragging, isRoomsVisible, relativeZoom, roomNamesThreshold, onSelectRoom, zoomToWorldPoint]
   )
 
-  // Touch Handlers (single touch pan, pinch-to-zoom)
+  // Touch Handlers (single touch pan, pinch-to-zoom anchored at pinch midpoint)
   const handleTouchStart = (e) => {
-    setIsSmoothTransitioning(false)
+    stopCameraAnimation()
     if (e.touches.length === 1) {
       setIsDragging(true)
       const touch = e.touches[0]
@@ -412,12 +518,19 @@ export default function MapCanvas({
       }
     } else if (e.touches.length === 2) {
       setIsDragging(false)
+      const rect = containerRef.current?.getBoundingClientRect()
+      const offsetX = rect ? rect.left : 0
+      const offsetY = rect ? rect.top : 0
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       )
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - offsetX
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - offsetY
       initialTouchDistanceRef.current = dist
-      initialTouchZoomRef.current = zoom
+      initialTouchZoomRef.current = currentZoomRef.current
+      initialTouchCenterRef.current = { x: centerX, y: centerY }
+      initialTouchPanRef.current = { ...currentPanRef.current }
     }
   }
 
@@ -428,21 +541,37 @@ export default function MapCanvas({
         x: touch.clientX - dragStartRef.current.x,
         y: touch.clientY - dragStartRef.current.y,
       }
-      setPan(clampPan(candidatePan, currentZoomRef.current))
+      const clamped = clampPan(candidatePan, currentZoomRef.current)
+      currentPanRef.current = clamped
+      targetPanRef.current = clamped
+      setPan(clamped)
     } else if (e.touches.length === 2 && initialTouchDistanceRef.current) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       )
-      const factor = dist / initialTouchDistanceRef.current
+      // Damped pinch factor so touch pinch is also smooth and controlled
+      const rawFactor = dist / initialTouchDistanceRef.current
+      const factor = Math.pow(rawFactor, 0.75)
       const maxZoom = minZoomRef.current * MAX_RELATIVE_ZOOM
       const nextZoom = Math.min(
         Math.max(initialTouchZoomRef.current * factor, minZoomRef.current),
         maxZoom
       )
       const roundedZoom = parseFloat(nextZoom.toFixed(5))
+      const scaleRatio = roundedZoom / initialTouchZoomRef.current
+      const { x: cx, y: cy } = initialTouchCenterRef.current
+      const candidatePan = {
+        x: cx - (cx - initialTouchPanRef.current.x) * scaleRatio,
+        y: cy - (cy - initialTouchPanRef.current.y) * scaleRatio,
+      }
+      const clamped = clampPan(candidatePan, roundedZoom)
+      currentZoomRef.current = roundedZoom
+      targetZoomRef.current = roundedZoom
+      currentPanRef.current = clamped
+      targetPanRef.current = clamped
       setZoom(roundedZoom)
-      setPan((prevPan) => clampPan(prevPan, roundedZoom))
+      setPan(clamped)
     }
   }
 
@@ -455,47 +584,78 @@ export default function MapCanvas({
     }
   }
 
-  // Mouse Wheel Zoom centered at cursor (stepped so only a couple of zooms reach each stage)
+  // Smooth, slow Laptop Trackpad & Mouse Wheel Zoom anchored stably at the cursor
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
 
     const handleWheel = (e) => {
       e.preventDefault()
-      setIsSmoothTransitioning(false)
       const rect = el.getBoundingClientRect()
       const cursorX = e.clientX - rect.left
       const cursorY = e.clientY - rect.top
+      const now = performance.now()
 
-      const zoomFactor = e.deltaY < 0 ? 1.28 : 0.78
+      // Normalize wheel delta across pixel (trackpad), line (mouse wheel), and page modes
+      let rawDelta = e.deltaY
+      if (e.deltaMode === 1) rawDelta *= 16
+      else if (e.deltaMode === 2) rawDelta *= 100
+
+      // Cap single-event delta so fast trackpad flicks never jump
+      const maxDelta = e.ctrlKey ? 18 : 28
+      const clampedDelta = Math.max(-maxDelta, Math.min(maxDelta, rawDelta))
+
+      // Gentle, slow exponential sensitivity tailored for laptop trackpads
+      const sensitivity = e.ctrlKey ? 0.0042 : 0.0018
+      const zoomFactor = Math.exp(-clampedDelta * sensitivity)
+
       const minZ = minZoomRef.current
       const maxZ = minZ * MAX_RELATIVE_ZOOM
 
-      setZoom((prevZoom) => {
-        const nextZoom = Math.min(Math.max(prevZoom * zoomFactor, minZ), maxZ)
-        const roundedZoom = parseFloat(nextZoom.toFixed(5))
-        const scaleRatio = roundedZoom / prevZoom
+      // Lock the world focal point under the cursor for the duration of a continuous trackpad gesture
+      // so edge clamping (clampPan) never causes the zoom point to drift away from where the user points.
+      const gesture = wheelGestureRef.current
+      const cursorMoved = Math.hypot(cursorX - gesture.screenX, cursorY - gesture.screenY) > 6
+      const gestureExpired = now - gesture.lastTime > 180
 
-        setPan((prevPan) => {
-          const candidatePan = {
-            x: cursorX - (cursorX - prevPan.x) * scaleRatio,
-            y: cursorY - (cursorY - prevPan.y) * scaleRatio,
-          }
-          return clampPan(candidatePan, roundedZoom, {
-            width: rect.width,
-            height: rect.height,
-          })
-        })
+      if (gestureExpired || cursorMoved) {
+        gesture.screenX = cursorX
+        gesture.screenY = cursorY
+        gesture.worldX = (cursorX - currentPanRef.current.x) / currentZoomRef.current
+        gesture.worldY = (cursorY - currentPanRef.current.y) / currentZoomRef.current
+      }
+      gesture.lastTime = now
 
-        return roundedZoom
+      const nextTargetZoom = parseFloat(
+        Math.min(Math.max(targetZoomRef.current * zoomFactor, minZ), maxZ).toFixed(5)
+      )
+
+      const idealTargetPan = {
+        x: gesture.screenX - gesture.worldX * nextTargetZoom,
+        y: gesture.screenY - gesture.worldY * nextTargetZoom,
+      }
+
+      const clampedPan = clampPan(idealTargetPan, nextTargetZoom, {
+        width: rect.width,
+        height: rect.height,
       })
+
+      // Keep the gesture anchor synced with the clamped bounds so if the user started zooming
+      // near the outer edge of Layer 1, the anchor smoothly slides into Layer 2 without sticking.
+      gesture.worldX = (gesture.screenX - clampedPan.x) / nextTargetZoom
+      gesture.worldY = (gesture.screenY - clampedPan.y) / nextTargetZoom
+
+      targetZoomRef.current = nextTargetZoom
+      targetPanRef.current = clampedPan
+
+      startCameraAnimation()
     }
 
     el.addEventListener('wheel', handleWheel, { passive: false })
     return () => el.removeEventListener('wheel', handleWheel)
-  }, [clampPan])
+  }, [clampPan, startCameraAnimation])
 
-  // Floating Controls Zoom In/Out (1 click -> zoomed map, 2 clicks -> building rooms, 3-4 clicks -> room names)
+  // Floating Controls Zoom In/Out (smoothly animated via requestAnimationFrame)
   const handleZoomIn = () => {
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
@@ -503,24 +663,17 @@ export default function MapCanvas({
     const centerX = sidebarOffset + (rect.width - sidebarOffset) / 2
     const centerY = rect.height / 2
 
-    triggerSmoothCamera(280)
-    setZoom((prevZoom) => {
-      const maxZ = minZoomRef.current * MAX_RELATIVE_ZOOM
-      const nextZoom = Math.min(prevZoom * 1.48, maxZ)
-      const roundedZoom = parseFloat(nextZoom.toFixed(5))
-      const scaleRatio = roundedZoom / prevZoom
-      setPan((prevPan) =>
-        clampPan(
-          {
-            x: centerX - (centerX - prevPan.x) * scaleRatio,
-            y: centerY - (centerY - prevPan.y) * scaleRatio,
-          },
-          roundedZoom,
-          { width: rect.width, height: rect.height }
-        )
-      )
-      return roundedZoom
-    })
+    const maxZ = minZoomRef.current * MAX_RELATIVE_ZOOM
+    const nextZoom = parseFloat(Math.min(targetZoomRef.current * 1.38, maxZ).toFixed(5))
+    const scaleRatio = nextZoom / targetZoomRef.current
+    const rawPan = {
+      x: centerX - (centerX - targetPanRef.current.x) * scaleRatio,
+      y: centerY - (centerY - targetPanRef.current.y) * scaleRatio,
+    }
+
+    targetZoomRef.current = nextZoom
+    targetPanRef.current = clampPan(rawPan, nextZoom, { width: rect.width, height: rect.height })
+    startCameraAnimation()
   }
 
   const handleZoomOut = () => {
@@ -530,35 +683,28 @@ export default function MapCanvas({
     const centerX = sidebarOffset + (rect.width - sidebarOffset) / 2
     const centerY = rect.height / 2
 
-    triggerSmoothCamera(280)
-    setZoom((prevZoom) => {
-      const minZ = minZoomRef.current
-      const nextZoom = Math.max(prevZoom / 1.48, minZ)
-      const roundedZoom = parseFloat(nextZoom.toFixed(5))
-      const scaleRatio = roundedZoom / prevZoom
-      setPan((prevPan) =>
-        clampPan(
-          {
-            x: centerX - (centerX - prevPan.x) * scaleRatio,
-            y: centerY - (centerY - prevPan.y) * scaleRatio,
-          },
-          roundedZoom,
-          { width: rect.width, height: rect.height }
-        )
-      )
-      return roundedZoom
-    })
+    const minZ = minZoomRef.current
+    const nextZoom = parseFloat(Math.max(targetZoomRef.current / 1.38, minZ).toFixed(5))
+    const scaleRatio = nextZoom / targetZoomRef.current
+    const rawPan = {
+      x: centerX - (centerX - targetPanRef.current.x) * scaleRatio,
+      y: centerY - (centerY - targetPanRef.current.y) * scaleRatio,
+    }
+
+    targetZoomRef.current = nextZoom
+    targetPanRef.current = clampPan(rawPan, nextZoom, { width: rect.width, height: rect.height })
+    startCameraAnimation()
   }
 
   const handleReset = () => {
     if (!containerRef.current) return
     const fit = computeCoverView(containerRef.current)
     if (!fit) return
-    triggerSmoothCamera(420)
     setFocusedRoomId(null)
     setHoveredRoomId(null)
-    setZoom(fit.minZoom)
-    setPan(fit.pan)
+    targetZoomRef.current = fit.minZoom
+    targetPanRef.current = fit.pan
+    startCameraAnimation()
   }
 
   // Current Russian-doll stage badge info
@@ -580,7 +726,7 @@ export default function MapCanvas({
   return (
     <div
       ref={containerRef}
-      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''} ${animate ? 'is-animated' : ''} ${isSmoothTransitioning ? 'is-smooth-camera' : ''}`}
+      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''} ${animate ? 'is-animated' : ''}`}
       style={{ backgroundColor: bgColor }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -614,7 +760,7 @@ export default function MapCanvas({
           {/* DOLL 1: Unzoomed Outer Map (MAP-SAT base filling 0..5483 x 0..4446) */}
           <g
             id="momo-unzoomed-layer"
-            className="momo-layer momo-layer--unzoomed"
+            className={`momo-layer momo-layer--unzoomed ${isZoomedMapVisible ? 'is-covered' : ''}`}
             dangerouslySetInnerHTML={{ __html: SAT_INNER_MARKUP }}
           />
 
@@ -622,9 +768,6 @@ export default function MapCanvas({
           <g
             id="momo-zoomed-inset-layer"
             className={`momo-layer momo-layer--zoomed-inset ${isZoomedMapVisible ? 'is-open' : 'is-closed'}`}
-            style={{
-              transformOrigin: `${INSET_BOUNDS.x + INSET_BOUNDS.width / 2}px ${INSET_BOUNDS.y + INSET_BOUNDS.height / 2}px`,
-            }}
             dangerouslySetInnerHTML={{ __html: MAIN_BASE_MARKUP }}
           />
 
@@ -632,9 +775,6 @@ export default function MapCanvas({
           <g
             id="momo-building-rooms-wrapper"
             className={`momo-layer momo-layer--rooms ${isRoomsVisible ? 'is-open' : 'is-closed'} ${amenityFilterClass}`}
-            style={{
-              transformOrigin: `${BUILDING_BOUNDS.cx}px ${BUILDING_BOUNDS.cy}px`,
-            }}
             dangerouslySetInnerHTML={{ __html: MAIN_ROOMS_MARKUP }}
           />
 
@@ -724,9 +864,9 @@ export default function MapCanvas({
                 className="momo-stage-jump-btn"
                 onClick={() =>
                   zoomToWorldPoint(
-                    INSET_BOUNDS.x + INSET_BOUNDS.width / 2,
-                    INSET_BOUNDS.y + INSET_BOUNDS.height / 2,
-                    1.55
+                    SAFE_INSET.cx,
+                    SAFE_INSET.cy,
+                    insetCoverRelZoom * 1.05
                   )
                 }
               >
@@ -738,7 +878,7 @@ export default function MapCanvas({
                 type="button"
                 className="momo-stage-jump-btn"
                 onClick={() =>
-                  zoomToWorldPoint(BUILDING_BOUNDS.cx, BUILDING_BOUNDS.cy, 2.4)
+                  zoomToWorldPoint(BUILDING_BOUNDS.cx, BUILDING_BOUNDS.cy, roomsVisibleThreshold * 1.08)
                 }
               >
                 Voir les locaux
@@ -749,7 +889,7 @@ export default function MapCanvas({
                 type="button"
                 className="momo-stage-jump-btn"
                 onClick={() =>
-                  zoomToWorldPoint(BUILDING_BOUNDS.cx, BUILDING_BOUNDS.cy, 4.2)
+                  zoomToWorldPoint(BUILDING_BOUNDS.cx, BUILDING_BOUNDS.cy, roomNamesThreshold * 1.15)
                 }
               >
                 Voir les noms
