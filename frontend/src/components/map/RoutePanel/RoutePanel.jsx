@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import './RoutePanel.css'
 
-export default function RoutePanel() {
+export default function RoutePanel({ onSelectRoom = null }) {
   const [depart, setDepart] = useState('')
   const [destination, setDestination] = useState('')
 
@@ -10,23 +10,31 @@ export default function RoutePanel() {
     setDestination(depart)
   }
 
+  const handleKeyDown = (e, val) => {
+    if (e.key === 'Enter' && val.trim() && onSelectRoom) {
+      onSelectRoom(val.trim())
+    }
+  }
+
   return (
     <div className="route-card" role="region" aria-label="Recherche d'itinéraire">
       <div className="route-card__inputs">
         <input
           type="text"
           className="route-card__input"
-          placeholder="Départ"
+          placeholder="Départ (ex. A-3133)"
           value={depart}
           onChange={(e) => setDepart(e.target.value)}
+          onKeyDown={(e) => handleKeyDown(e, depart)}
           aria-label="Point de départ"
         />
         <input
           type="text"
           className="route-card__input"
-          placeholder="Destination"
+          placeholder="Destination (ex. B-3300)"
           value={destination}
           onChange={(e) => setDestination(e.target.value)}
+          onKeyDown={(e) => handleKeyDown(e, destination)}
           aria-label="Destination"
         />
       </div>
