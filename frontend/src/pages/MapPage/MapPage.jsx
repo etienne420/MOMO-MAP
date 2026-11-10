@@ -9,6 +9,7 @@ import './MapPage.css'
 
 export default function MapPage() {
   const [activeAmenityId, setActiveAmenityId] = useState(null)
+  const [selectedRoomId, setSelectedRoomId] = useState(null)
   const [theme, setTheme] = useState(null)
   const navigate = useNavigate()
 
@@ -29,7 +30,12 @@ export default function MapPage() {
   return (
     <div className="map-page-screen">
       {/* Full viewport interactive Google Maps Grid canvas */}
-      <MapCanvas theme={theme} />
+      <MapCanvas
+        theme={theme}
+        activeAmenityId={activeAmenityId}
+        selectedRoomId={selectedRoomId}
+        onSelectRoom={setSelectedRoomId}
+      />
 
       {/* Floating Navigation Sidebar */}
       <aside className="map-page-sidebar" aria-label="Navigation et commodités">
@@ -42,7 +48,7 @@ export default function MapPage() {
             Paramètres
           </button>
         </div>
-        <RoutePanel />
+        <RoutePanel onSelectRoom={setSelectedRoomId} />
         <AmenitiesPanel
           activeAmenityId={activeAmenityId}
           onSelectAmenity={setActiveAmenityId}

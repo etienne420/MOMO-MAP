@@ -23,6 +23,11 @@
   display: block;
 }
 
+/* Smooth camera pan/zoom transition when triggered by controls, room click, or quick-jump */
+.map-canvas-container.is-smooth-camera .momo-world-camera {
+  transition: transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .map-canvas-container.is-animated .map-canvas-svg {
   animation: map-pulse 6s ease-in-out infinite;
 }
@@ -30,6 +35,227 @@
 @keyframes map-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.92; }
+}
+
+/* ==========================================================================
+   Russian-Doll (Matryoshka) Progressive Map Layers & Animations
+   ========================================================================== */
+
+.momo-layer {
+  will-change: opacity, transform;
+}
+
+/* DOLL 2: Zoomed Campus Inset Map */
+.momo-layer--zoomed-inset {
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.momo-layer--zoomed-inset.is-closed {
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+}
+
+.momo-layer--zoomed-inset.is-open {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* DOLL 3: Building Rooms Layer */
+.momo-layer--rooms {
+  transition:
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.momo-layer--rooms.is-closed {
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: none;
+}
+
+.momo-layer--rooms.is-open {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.momo-layer--rooms.is-open [data-name] {
+  cursor: pointer;
+  transition: fill 0.18s ease, opacity 0.18s ease, stroke-width 0.18s ease;
+}
+
+.momo-layer--rooms.is-open [data-name]:hover {
+  opacity: 0.95;
+  stroke: #10b981;
+  stroke-width: 2.2px;
+}
+
+/* Amenity Filter Highlights on Rooms */
+.momo-layer--rooms.amenity-filter-toilettes [data-type="wc-f"],
+.momo-layer--rooms.amenity-filter-toilettes [data-type="wc-m"] {
+  opacity: 1 !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.4px !important;
+  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.75));
+}
+
+.momo-layer--rooms.amenity-filter-toilettes [data-type="classroom"],
+.momo-layer--rooms.amenity-filter-toilettes [data-type="stairs"] {
+  opacity: 0.28 !important;
+}
+
+.momo-layer--rooms.amenity-filter-ascenseur [data-type="stairs"] {
+  opacity: 1 !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.4px !important;
+  filter: drop-shadow(0 0 6px rgba(217, 119, 6, 0.75));
+}
+
+.momo-layer--rooms.amenity-filter-ascenseur [data-type="classroom"],
+.momo-layer--rooms.amenity-filter-ascenseur [data-type="wc-f"],
+.momo-layer--rooms.amenity-filter-ascenseur [data-type="wc-m"] {
+  opacity: 0.28 !important;
+}
+
+/* Highlight Polygon for Hovered / Selected Room */
+.momo-room-highlight {
+  fill: rgba(16, 185, 129, 0.28);
+  stroke: #10b981;
+  stroke-width: 2.4px;
+  stroke-linejoin: round;
+  transition: all 0.2s ease;
+}
+
+.momo-room-highlight.is-selected {
+  fill: rgba(30, 107, 55, 0.38);
+  stroke: #16a34a;
+  stroke-width: 3px;
+}
+
+/* DOLL 4: Room Vector Names Layer */
+.momo-room-label-group {
+  animation: room-label-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes room-label-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.momo-room-label-text {
+  font-family: 'Uncut Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: #ffffff;
+  stroke: #111827;
+  stroke-width: 1.8px;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
+  letter-spacing: 0.02em;
+  user-select: none;
+  pointer-events: none;
+}
+
+.momo-room-label-group.is-highlighted .momo-room-label-text {
+  fill: #ecfdf5;
+  stroke: #065f46;
+  stroke-width: 2.2px;
+}
+
+/* ==========================================================================
+   Russian-Doll Zoom Stage Indicator Bar (Bottom Center)
+   ========================================================================== */
+
+.momo-zoom-stage-bar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.momo-zoom-stage-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(218, 220, 224, 0.85);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
+  transition: all 0.25s ease;
+}
+
+.momo-zoom-stage-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.momo-zoom-stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+  transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+.momo-zoom-stage-dot.is-active {
+  background: #1e6b37;
+  transform: scale(1.15);
+}
+
+.momo-zoom-stage-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.momo-zoom-stage-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.momo-zoom-stage-subtitle {
+  font-size: 11px;
+  color: #4b5563;
+}
+
+.momo-stage-jump-btn {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: none;
+  background: #1e6b37;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.momo-stage-jump-btn:hover {
+  background: #165229;
+  transform: translateY(-1px);
+}
+
+.momo-stage-jump-btn:active {
+  transform: translateY(0);
 }
 
 /* Floating Google Maps Zoom & Recenter Controls - Centered Vertically on Right */
@@ -110,5 +336,17 @@
 @media (max-width: 640px) {
   .google-maps-controls-right {
     right: 16px;
+  }
+
+  .momo-zoom-stage-bar {
+    bottom: 14px;
+    width: calc(100% - 32px);
+    display: flex;
+    justify-content: center;
+  }
+
+  .momo-zoom-stage-pill {
+    max-width: 100%;
+    padding: 6px 12px;
   }
 }
