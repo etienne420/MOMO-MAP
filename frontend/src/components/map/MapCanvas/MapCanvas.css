@@ -23,76 +23,59 @@
   display: block;
 }
 
-/* Smooth camera pan/zoom transition when triggered by controls, room click, or quick-jump */
-.map-canvas-container.is-smooth-camera .momo-world-camera {
-  transition: transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.map-canvas-container.is-animated .map-canvas-svg {
-  animation: map-pulse 6s ease-in-out infinite;
-}
-
-@keyframes map-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.92; }
-}
+/* Camera transforms are applied directly to .momo-world-camera via 60fps requestAnimationFrame DOM updates */
 
 /* ==========================================================================
    Russian-Doll (Matryoshka) Progressive Map Layers & Animations
    ========================================================================== */
 
 .momo-layer {
-  will-change: opacity, transform;
-  transform-box: fill-box;
-  transform-origin: center;
+  will-change: opacity;
 }
 
 /* DOLL 1: Unzoomed Outer Map */
 .momo-layer--unzoomed {
-  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   opacity: 1;
 }
 
 .momo-layer--unzoomed.is-covered {
+  display: none;
   opacity: 0;
   pointer-events: none;
 }
 
 /* DOLL 2: Zoomed Campus Inset Map */
 .momo-layer--zoomed-inset {
-  transition:
-    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .momo-layer--zoomed-inset.is-closed {
+  display: none;
   opacity: 0;
-  transform: scale(1.015);
   pointer-events: none;
 }
 
 .momo-layer--zoomed-inset.is-open {
+  display: inline;
   opacity: 1;
-  transform: scale(1);
   pointer-events: auto;
 }
 
 /* DOLL 3: Building Rooms Layer */
 .momo-layer--rooms {
-  transition:
-    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .momo-layer--rooms.is-closed {
+  display: none;
   opacity: 0;
-  transform: scale(0.985);
   pointer-events: none;
 }
 
 .momo-layer--rooms.is-open {
+  display: inline;
   opacity: 1;
-  transform: scale(1);
   pointer-events: auto;
 }
 
@@ -107,31 +90,31 @@
   stroke-width: 2.2px;
 }
 
-/* Amenity Filter Highlights on Rooms */
+/* Amenity Filter Highlights on Rooms (Clean SVG rendering without drop-shadow filters) */
 .momo-layer--rooms.amenity-filter-toilettes [data-type="wc-f"],
 .momo-layer--rooms.amenity-filter-toilettes [data-type="wc-m"] {
   opacity: 1 !important;
-  stroke: #ffffff !important;
-  stroke-width: 2.4px !important;
-  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.75));
+  fill: #3b82f6 !important;
+  stroke: #1d4ed8 !important;
+  stroke-width: 3px !important;
 }
 
 .momo-layer--rooms.amenity-filter-toilettes [data-type="classroom"],
 .momo-layer--rooms.amenity-filter-toilettes [data-type="stairs"] {
-  opacity: 0.28 !important;
+  opacity: 0.25 !important;
 }
 
 .momo-layer--rooms.amenity-filter-ascenseur [data-type="stairs"] {
   opacity: 1 !important;
-  stroke: #ffffff !important;
-  stroke-width: 2.4px !important;
-  filter: drop-shadow(0 0 6px rgba(217, 119, 6, 0.75));
+  fill: #f59e0b !important;
+  stroke: #b45309 !important;
+  stroke-width: 3px !important;
 }
 
 .momo-layer--rooms.amenity-filter-ascenseur [data-type="classroom"],
 .momo-layer--rooms.amenity-filter-ascenseur [data-type="wc-f"],
 .momo-layer--rooms.amenity-filter-ascenseur [data-type="wc-m"] {
-  opacity: 0.28 !important;
+  opacity: 0.25 !important;
 }
 
 /* Highlight Polygon for Hovered / Selected Room */

@@ -22,19 +22,46 @@ const SAFE_INSET = {
   cy: INSET_BOUNDS.y + INSET_BOUNDS.height / 2, // 2219.08
 }
 
-// Extract inner SVG contents and structure MAP-MAIN into controllable Russian-doll layers
+// Pre-index rooms by ID and lowercase ID for O(1) lookups
+const ROOMS_BY_ID = new Map()
+const ROOMS_BY_LOWER_ID = new Map()
+for (const room of momoRoomsData.rooms) {
+  if (room.id) {
+    ROOMS_BY_ID.set(room.id, room)
+    ROOMS_BY_LOWER_ID.set(room.id.toLowerCase(), room)
+  }
+}
+
+function getRoomById(id) {
+  if (!id) return null
+  return ROOMS_BY_ID.get(id) || ROOMS_BY_LOWER_ID.get(id.toLowerCase()) || null
+}
+
+// Extract inner SVG contents
 function extractInnerSvg(rawSvg) {
   const match = rawSvg.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i)
   return match ? match[1] : rawSvg
 }
 
+// Deduplicate consecutive identical <path> elements
+function deduplicatePaths(svgText) {
+  const lines = svgText.split('\n')
+  const result = []
+  let prevLine = ''
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim()
+    if (trimmed && trimmed.startsWith('<path') && trimmed === prevLine) {
+      continue
+    }
+    prevLine = trimmed
+    result.push(lines[i])
+  }
+  return result.join('\n')
+}
+
+// Structure MAP-MAIN into controllable Russian-doll layers & strip heavy SVG filter blur dropshadows
 function buildLayeredMainSvg(rawMainSvg) {
   const inner = extractInnerSvg(rawMainSvg)
-  // In MAP-MAIN.svg:
-  // - Everything before <rect x="1062.67" y="1046.08"...> is identical to MAP-SAT.svg (the outer unzoomed map).
-  // - From <rect x="1062.67" y="1046.08"...> to <g opacity="0.78" id="momo-rooms-layer"> + <g filter="url(#filter2_d_120_7893)"> is the zoomed campus inset map.
-  // - <g opacity="0.78" id="momo-rooms-layer"> ... </g> is the building rooms layer.
-  // - <defs>...</defs> contains filters and masks.
   const insetStart = inner.indexOf('<rect x="1062.67" y="1046.08"')
   const roomsStart = inner.indexOf('<g opacity="0.78" id="momo-rooms-layer">')
   const filter2Start = inner.indexOf('<g filter="url(#filter2_d_120_7893)">')
@@ -42,7 +69,7 @@ function buildLayeredMainSvg(rawMainSvg) {
   const defsStart = inner.indexOf('<defs>')
 
   if (insetStart === -1 || roomsStart === -1 || filter2Start === -1 || borderStart === -1 || defsStart === -1) {
-    return { baseZoomedMarkup: inner, roomsMarkup: '', defsMarkup: '' }
+    return { baseZoomedMarkup: deduplicatePaths(inner), roomsMarkup: '', defsMarkup: '' }
   }
 
   const insetPart1 = inner.slice(insetStart, roomsStart)
@@ -50,14 +77,20 @@ function buildLayeredMainSvg(rawMainSvg) {
   const insetPart2 = inner.slice(filter2Start, borderStart)
   const defsPart = inner.slice(defsStart)
 
+  // Strip massive 2780x2341 feGaussianBlur drop-shadow filters
+  const cleanedBase = (insetPart1 + insetPart2)
+    .replaceAll('filter="url(#filter0_d_120_7893)"', '')
+    .replaceAll('filter="url(#filter1_d_120_7893)"', '')
+    .replaceAll('filter="url(#filter2_d_120_7893)"', '')
+
   return {
-    baseZoomedMarkup: insetPart1 + insetPart2,
+    baseZoomedMarkup: deduplicatePaths(cleanedBase),
     roomsMarkup: roomsGroup,
     defsMarkup: defsPart,
   }
 }
 
-const SAT_INNER_MARKUP = extractInnerSvg(mapSatSvgRaw)
+const SAT_INNER_MARKUP = deduplicatePaths(extractInnerSvg(mapSatSvgRaw))
 const {
   baseZoomedMarkup: MAIN_BASE_MARKUP,
   roomsMarkup: MAIN_ROOMS_MARKUP,
@@ -66,6 +99,105 @@ const {
 
 const MAX_RELATIVE_ZOOM = 12
 
+// Memoized subcomponents for static SVG layers so React avoids reconciling 1,500+ path nodes
+const SvgDefs = React.memo(function SvgDefs() {
+  return <g dangerouslySetInnerHTML={{ __html: MAIN_DEFS_MARKUP }} />
+})
+
+const UnzoomedLayer = React.memo(function UnzoomedLayer({ isCovered }) {
+  return (
+    <g
+      id="momo-unzoomed-layer"
+      className={`momo-layer momo-layer--unzoomed ${isCovered ? 'is-covered' : ''}`}
+      dangerouslySetInnerHTML={{ __html: SAT_INNER_MARKUP }}
+    />
+  )
+})
+
+const ZoomedInsetLayer = React.memo(function ZoomedInsetLayer({ isOpen }) {
+  return (
+    <g
+      id="momo-zoomed-inset-layer"
+      className={`momo-layer momo-layer--zoomed-inset ${isOpen ? 'is-open' : 'is-closed'}`}
+      dangerouslySetInnerHTML={{ __html: MAIN_BASE_MARKUP }}
+    />
+  )
+})
+
+const BuildingRoomsLayer = React.memo(function BuildingRoomsLayer({ isOpen, amenityFilterClass }) {
+  return (
+    <g
+      id="momo-building-rooms-wrapper"
+      className={`momo-layer momo-layer--rooms ${isOpen ? 'is-open' : 'is-closed'} ${amenityFilterClass}`}
+      dangerouslySetInnerHTML={{ __html: MAIN_ROOMS_MARKUP }}
+    />
+  )
+})
+
+const RoomHighlightLayer = React.memo(function RoomHighlightLayer({
+  activeRooms,
+  focusedRoomId,
+  selectedRoomId,
+}) {
+  return (
+    <>
+      {activeRooms.map((room) => {
+        const isSelected = room.id === focusedRoomId || room.id === selectedRoomId
+        const pts = room.polygon.map((p) => `${p[0]},${p[1]}`).join(' ')
+        return (
+          <polygon
+            key={`highlight-${room.id}`}
+            points={pts}
+            className={`momo-room-highlight ${isSelected ? 'is-selected' : 'is-hovered'}`}
+            pointerEvents="none"
+          />
+        )
+      })}
+    </>
+  )
+})
+
+const RoomLabelsLayer = React.memo(function RoomLabelsLayer({
+  isRoomsVisible,
+  visibleRoomLabels,
+  hoveredRoomId,
+  focusedRoomId,
+  selectedRoomId,
+}) {
+  return (
+    <g
+      id="momo-room-names-layer"
+      className={`momo-layer momo-layer--labels ${isRoomsVisible ? 'is-active' : ''}`}
+      pointerEvents="none"
+    >
+      {visibleRoomLabels.map((room) => {
+        const isHighlighted =
+          room.id === hoveredRoomId ||
+          room.id === focusedRoomId ||
+          room.id === selectedRoomId
+        const displayText = room.label || room.id
+        return (
+          <g
+            key={`label-${room.id}`}
+            className={`momo-room-label-group ${isHighlighted ? 'is-highlighted' : ''}`}
+            transform={`translate(${room.cx}, ${room.cy})`}
+          >
+            <text
+              x="0"
+              y="0"
+              fontSize={`${room.fontSize}px`}
+              className={`momo-room-label-text momo-room-label-text--${room.type}`}
+              data-room-label={room.id}
+            >
+              {displayText}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
+})
+
 export default function MapCanvas({
   theme = null,
   activeAmenityId = null,
@@ -73,6 +205,7 @@ export default function MapCanvas({
   onSelectRoom = null,
 }) {
   const containerRef = useRef(null)
+  const cameraGroupRef = useRef(null)
 
   const bgColor = theme?.backgroundColor || '#ffffff'
   const animate = theme?.animate && !theme?.reducedMotion
@@ -86,7 +219,13 @@ export default function MapCanvas({
   const [focusedRoomId, setFocusedRoomId] = useState(null)
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 })
 
+  const hoveredRoomIdRef = useRef(null)
+  useEffect(() => {
+    hoveredRoomIdRef.current = hoveredRoomId
+  }, [hoveredRoomId])
+
   const hasInitializedRef = useRef(false)
+  const isDraggingRef = useRef(false)
   const dragStartRef = useRef({ x: 0, y: 0 })
   const currentPanRef = useRef({ x: 0, y: 0 })
   const currentZoomRef = useRef(0.35)
@@ -96,6 +235,10 @@ export default function MapCanvas({
   const lastFrameTimeRef = useRef(0)
   const minZoomRef = useRef(0.35)
   const viewportSizeRef = useRef({ width: 1280, height: 800 })
+  const currentStageRef = useRef(1)
+  const isRoomsVisibleRef = useRef(false)
+  const lastThrottledSyncRef = useRef(0)
+
   const initialTouchDistanceRef = useRef(null)
   const initialTouchZoomRef = useRef(0.35)
   const initialTouchCenterRef = useRef({ x: 0, y: 0 })
@@ -108,11 +251,44 @@ export default function MapCanvas({
     worldY: 0,
   })
 
+  // Direct DOM transform updater - updates SVG camera transform directly with zero React re-render
+  const applyCameraTransform = useCallback((p, z) => {
+    if (cameraGroupRef.current) {
+      cameraGroupRef.current.setAttribute('transform', `translate(${p.x}, ${p.y}) scale(${z})`)
+    }
+  }, [])
+
+  const updateDataAttributes = useCallback((z, stage) => {
+    if (containerRef.current) {
+      const minZ = minZoomRef.current
+      if (minZ > 0) {
+        containerRef.current.setAttribute('data-relative-zoom', (z / minZ).toFixed(2))
+      }
+      if (stage !== undefined) {
+        containerRef.current.setAttribute('data-zoom-stage', String(stage))
+      }
+    }
+  }, [])
+
+  // Russian-doll stage step calculator
+  const getStageStep = useCallback((z, vp = viewportSizeRef.current) => {
+    const minZ = minZoomRef.current
+    const relZ = minZ > 0 ? z / minZ : 1
+    const insetCoverZ = Math.max(vp.width / SAFE_INSET.width, vp.height / SAFE_INSET.height)
+    const isZoomed = z >= insetCoverZ * 0.998
+    const insetCoverRel = minZ > 0 ? insetCoverZ / minZ : 1.73
+    const roomsVisThresh = Math.max(insetCoverRel * 1.35, 2.4)
+    const roomNamesThresh = Math.max(insetCoverRel * 2.05, 3.6)
+
+    if (relZ >= roomNamesThresh) return 4
+    if (relZ >= roomsVisThresh) return 3
+    if (isZoomed) return 2
+    return 1
+  }, [])
+
   // Clamp pan so:
   // 1) At minZoom (1.0x), the user cannot pan or unzoom outside the 5483x4446 Layer 1 boundaries.
-  // 2) As zoom approaches insetCoverZoom (where Layer 2 fills 100% of the screen), the allowed bounds
-  //    smoothly converge to SAFE_INSET so that when Layer 2 shows, 0 pixels of Layer 1 are visible
-  //    and the user can never pan outside Layer 2 to see Layer 1 behind it.
+  // 2) As zoom approaches insetCoverZoom, the allowed bounds smoothly converge to SAFE_INSET
   const clampPan = useCallback((candidatePan, targetZoom, vp = viewportSizeRef.current) => {
     const outerCoverZoom = Math.max(vp.width / MAP_WIDTH, vp.height / MAP_HEIGHT)
     const insetCoverZoom = Math.max(vp.width / SAFE_INSET.width, vp.height / SAFE_INSET.height)
@@ -159,6 +335,7 @@ export default function MapCanvas({
   }, [])
 
   // Smooth 60fps requestAnimationFrame camera interpolation loop for silky trackpad & button zooming
+  // Direct DOM updates bypass React re-renders during interpolation
   const startCameraAnimation = useCallback(() => {
     if (rafIdRef.current !== null) return
 
@@ -184,6 +361,12 @@ export default function MapCanvas({
         currentZoomRef.current = tgtZ
         currentPanRef.current = finalPan
         targetPanRef.current = finalPan
+
+        applyCameraTransform(finalPan, tgtZ)
+        const finalStage = getStageStep(tgtZ)
+        updateDataAttributes(tgtZ, finalStage)
+        currentStageRef.current = finalStage
+
         setZoom(tgtZ)
         setPan(finalPan)
         rafIdRef.current = null
@@ -203,27 +386,42 @@ export default function MapCanvas({
 
       currentZoomRef.current = nextZ
       currentPanRef.current = nextP
-      setZoom(nextZ)
-      setPan(nextP)
+
+      // Zero-re-render direct DOM update
+      applyCameraTransform(nextP, nextZ)
+      const stageNow = getStageStep(nextZ)
+      updateDataAttributes(nextZ, stageNow)
+
+      // Commit React state if crossing stage threshold or throttled interval in rooms mode
+      if (stageNow !== currentStageRef.current) {
+        currentStageRef.current = stageNow
+        setZoom(nextZ)
+        setPan(nextP)
+      } else if (stageNow >= 3) {
+        if (now - lastThrottledSyncRef.current > 120) {
+          lastThrottledSyncRef.current = now
+          setZoom(nextZ)
+          setPan(nextP)
+        }
+      }
 
       rafIdRef.current = requestAnimationFrame(step)
     }
 
     rafIdRef.current = requestAnimationFrame(step)
-  }, [clampPan])
+  }, [clampPan, applyCameraTransform, updateDataAttributes, getStageStep])
 
   useEffect(() => {
     return () => stopCameraAnimation()
   }, [stopCameraAnimation])
 
-  // Compute cover scale so the SVG fills the entire screen ("the whole grid should be the map so you shouldnt be able to unzoom out the svg")
+  // Compute cover scale so the SVG fills the entire screen
   const computeCoverView = useCallback((el) => {
     if (!el) return null
     const rect = el.getBoundingClientRect()
     const w = rect.width || window.innerWidth
     const h = rect.height || window.innerHeight
 
-    // Use Math.max so the SVG covers 100% of the viewport width and height with no outside space visible
     const coverScale = Math.max(w / MAP_WIDTH, h / MAP_HEIGHT)
     const computedMinZoom = parseFloat(coverScale.toFixed(5))
 
@@ -259,6 +457,10 @@ export default function MapCanvas({
         targetZoomRef.current = fit.minZoom
         currentPanRef.current = fit.pan
         targetPanRef.current = fit.pan
+        applyCameraTransform(fit.pan, fit.minZoom)
+        const stage = getStageStep(fit.minZoom, fit.viewport)
+        currentStageRef.current = stage
+        updateDataAttributes(fit.minZoom, stage)
         setZoom(fit.minZoom)
         setPan(fit.pan)
       } else {
@@ -268,6 +470,10 @@ export default function MapCanvas({
         targetZoomRef.current = nextZoom
         currentPanRef.current = nextPan
         targetPanRef.current = nextPan
+        applyCameraTransform(nextPan, nextZoom)
+        const stage = getStageStep(nextZoom, fit.viewport)
+        currentStageRef.current = stage
+        updateDataAttributes(nextZoom, stage)
         setZoom(nextZoom)
         setPan(nextPan)
       }
@@ -278,7 +484,7 @@ export default function MapCanvas({
     const handleResize = () => applyCover(false)
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [computeCoverView, clampPan, stopCameraAnimation])
+  }, [computeCoverView, clampPan, stopCameraAnimation, applyCameraTransform, updateDataAttributes, getStageStep])
 
   // Relative zoom ratio (1.0 = most unzoomed starting state)
   const relativeZoom = useMemo(() => {
@@ -307,10 +513,14 @@ export default function MapCanvas({
   }, [insetCoverRelZoom])
 
   // Russian-doll stage states:
-  // Layer 2 ONLY shows once zoomed in enough that Layer 1 cannot be seen at all (zoom >= insetCoverZoom)
   const isZoomedMapVisible = zoom >= insetCoverZoom * 0.998
   const isRoomsVisible = relativeZoom >= roomsVisibleThreshold
   const isRoomNamesGlobalZoom = relativeZoom >= roomNamesThreshold
+
+  // Keep refs in sync with render state
+  useEffect(() => {
+    isRoomsVisibleRef.current = isRoomsVisible
+  }, [isRoomsVisible])
 
   // Calculate current viewport center and visible bounds in SVG world coordinates
   const visibleWorldBounds = useMemo(() => {
@@ -371,7 +581,7 @@ export default function MapCanvas({
         return screenWidthPx >= 42 && screenHeightPx >= 22
       }
 
-      // Between ROOMS_VISIBLE_THRESHOLD (2.1x) and ROOM_NAMES_THRESHOLD (3.4x):
+      // Between ROOMS_VISIBLE_THRESHOLD and ROOM_NAMES_THRESHOLD:
       // Show label for large rooms near the center of the user's zoom
       if (relativeZoom >= 2.7 && isNearViewportCenter && screenWidthPx >= 64 && screenHeightPx >= 34) {
         return true
@@ -390,6 +600,22 @@ export default function MapCanvas({
     focusedRoomId,
     selectedRoomId,
   ])
+
+  // Active rooms for highlight polygon overlay
+  const activeRooms = useMemo(() => {
+    const ids = [hoveredRoomId, focusedRoomId, selectedRoomId].filter(Boolean)
+    if (ids.length === 0) return []
+    const seen = new Set()
+    const result = []
+    for (const id of ids) {
+      const room = getRoomById(id)
+      if (room && !seen.has(room.id)) {
+        seen.add(room.id)
+        result.push(room)
+      }
+    }
+    return result
+  }, [hoveredRoomId, focusedRoomId, selectedRoomId])
 
   // Zoom to a specific SVG world coordinate (x, y) with a target relativeZoom
   const zoomToWorldPoint = useCallback(
@@ -426,18 +652,18 @@ export default function MapCanvas({
   useEffect(() => {
     if (!selectedRoomId || selectedRoomId === prevSelectedRoomRef.current) return
     prevSelectedRoomRef.current = selectedRoomId
-    const room = momoRoomsData.rooms.find(
-      (r) => r.id.toLowerCase() === selectedRoomId.toLowerCase()
-    )
+    const room = getRoomById(selectedRoomId)
     if (room) {
-      zoomToWorldPoint(room.cx, room.cy, Math.max(relativeZoom, 5.2))
+      const curRelZoom = minZoomRef.current > 0 ? currentZoomRef.current / minZoomRef.current : 1
+      zoomToWorldPoint(room.cx, room.cy, Math.max(curRelZoom, 5.2))
     }
-  }, [selectedRoomId, relativeZoom, zoomToWorldPoint])
+  }, [selectedRoomId, zoomToWorldPoint])
 
-  // Mouse Drag Handlers
+  // Mouse Drag Handlers with direct DOM transform updates
   const handleMouseDown = (e) => {
     if (e.button !== 0) return // Only primary click
     stopCameraAnimation()
+    isDraggingRef.current = true
     setIsDragging(true)
     dragStartRef.current = {
       x: e.clientX - currentPanRef.current.x,
@@ -447,7 +673,7 @@ export default function MapCanvas({
 
   const handleMouseMove = useCallback(
     (e) => {
-      if (!isDragging) return
+      if (!isDraggingRef.current) return
       const candidatePan = {
         x: e.clientX - dragStartRef.current.x,
         y: e.clientY - dragStartRef.current.y,
@@ -455,61 +681,76 @@ export default function MapCanvas({
       const clamped = clampPan(candidatePan, currentZoomRef.current)
       currentPanRef.current = clamped
       targetPanRef.current = clamped
-      setPan(clamped)
+
+      // Direct DOM transform update without React re-render
+      applyCameraTransform(clamped, currentZoomRef.current)
+
+      if (isRoomsVisibleRef.current) {
+        const now = performance.now()
+        if (now - lastThrottledSyncRef.current > 120) {
+          lastThrottledSyncRef.current = now
+          setPan(clamped)
+        }
+      }
     },
-    [isDragging, clampPan]
+    [clampPan, applyCameraTransform]
   )
 
   const handleMouseUp = useCallback(() => {
-    setIsDragging(false)
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false
+      setIsDragging(false)
+      setPan(currentPanRef.current)
+      setZoom(currentZoomRef.current)
+    }
   }, [])
 
   // Hover & click detection on room vectors inside #momo-rooms-layer
-  const handleSvgMouseMove = useCallback(
-    (e) => {
-      if (!isRoomsVisible) {
-        if (hoveredRoomId) setHoveredRoomId(null)
+  const handleSvgMouseMove = useCallback((e) => {
+    if (isDraggingRef.current) return
+    if (!isRoomsVisibleRef.current) {
+      if (hoveredRoomIdRef.current) setHoveredRoomId(null)
+      return
+    }
+    const target = e.target.closest('[data-name]')
+    if (target) {
+      const rid = target.getAttribute('data-name')
+      const rtype = target.getAttribute('data-type')
+      if (rid && rtype !== 'wall') {
+        if (hoveredRoomIdRef.current !== rid) setHoveredRoomId(rid)
         return
       }
-      const target = e.target.closest('[data-name]')
-      if (target) {
-        const rid = target.getAttribute('data-name')
-        const rtype = target.getAttribute('data-type')
-        if (rid && rtype !== 'wall') {
-          if (hoveredRoomId !== rid) setHoveredRoomId(rid)
-          return
-        }
-      }
-      if (hoveredRoomId) setHoveredRoomId(null)
-    },
-    [isRoomsVisible, hoveredRoomId]
-  )
+    }
+    if (hoveredRoomIdRef.current) setHoveredRoomId(null)
+  }, [])
 
   const handleSvgClick = useCallback(
     (e) => {
-      if (isDragging) return
+      if (isDraggingRef.current) return
       const target = e.target.closest('[data-name]')
-      if (target && isRoomsVisible) {
+      if (target && isRoomsVisibleRef.current) {
         const rid = target.getAttribute('data-name')
         const rtype = target.getAttribute('data-type')
         if (rid && rtype !== 'wall') {
           setFocusedRoomId(rid)
           onSelectRoom?.(rid)
-          const room = momoRoomsData.rooms.find((r) => r.id === rid)
-          if (room && relativeZoom < roomNamesThreshold * 1.3) {
+          const room = getRoomById(rid)
+          const curRelZoom = minZoomRef.current > 0 ? currentZoomRef.current / minZoomRef.current : 1
+          if (room && curRelZoom < roomNamesThreshold * 1.3) {
             zoomToWorldPoint(room.cx, room.cy, Math.max(roomNamesThreshold * 1.4, 4.8))
           }
           return
         }
       }
     },
-    [isDragging, isRoomsVisible, relativeZoom, roomNamesThreshold, onSelectRoom, zoomToWorldPoint]
+    [roomNamesThreshold, onSelectRoom, zoomToWorldPoint]
   )
 
   // Touch Handlers (single touch pan, pinch-to-zoom anchored at pinch midpoint)
   const handleTouchStart = (e) => {
     stopCameraAnimation()
     if (e.touches.length === 1) {
+      isDraggingRef.current = true
       setIsDragging(true)
       const touch = e.touches[0]
       dragStartRef.current = {
@@ -517,6 +758,7 @@ export default function MapCanvas({
         y: touch.clientY - currentPanRef.current.y,
       }
     } else if (e.touches.length === 2) {
+      isDraggingRef.current = false
       setIsDragging(false)
       const rect = containerRef.current?.getBoundingClientRect()
       const offsetX = rect ? rect.left : 0
@@ -535,7 +777,7 @@ export default function MapCanvas({
   }
 
   const handleTouchMove = (e) => {
-    if (e.touches.length === 1 && isDragging) {
+    if (e.touches.length === 1 && isDraggingRef.current) {
       const touch = e.touches[0]
       const candidatePan = {
         x: touch.clientX - dragStartRef.current.x,
@@ -544,13 +786,21 @@ export default function MapCanvas({
       const clamped = clampPan(candidatePan, currentZoomRef.current)
       currentPanRef.current = clamped
       targetPanRef.current = clamped
-      setPan(clamped)
+
+      applyCameraTransform(clamped, currentZoomRef.current)
+
+      if (isRoomsVisibleRef.current) {
+        const now = performance.now()
+        if (now - lastThrottledSyncRef.current > 120) {
+          lastThrottledSyncRef.current = now
+          setPan(clamped)
+        }
+      }
     } else if (e.touches.length === 2 && initialTouchDistanceRef.current) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       )
-      // Damped pinch factor so touch pinch is also smooth and controlled
       const rawFactor = dist / initialTouchDistanceRef.current
       const factor = Math.pow(rawFactor, 0.75)
       const maxZoom = minZoomRef.current * MAX_RELATIVE_ZOOM
@@ -570,17 +820,52 @@ export default function MapCanvas({
       targetZoomRef.current = roundedZoom
       currentPanRef.current = clamped
       targetPanRef.current = clamped
-      setZoom(roundedZoom)
-      setPan(clamped)
+
+      applyCameraTransform(clamped, roundedZoom)
+      const stageNow = getStageStep(roundedZoom)
+      updateDataAttributes(roundedZoom, stageNow)
+
+      if (stageNow !== currentStageRef.current) {
+        currentStageRef.current = stageNow
+        setZoom(roundedZoom)
+        setPan(clamped)
+      } else if (stageNow >= 3) {
+        const now = performance.now()
+        if (now - lastThrottledSyncRef.current > 120) {
+          lastThrottledSyncRef.current = now
+          setZoom(roundedZoom)
+          setPan(clamped)
+        }
+      }
     }
   }
 
   const handleTouchEnd = (e) => {
+    const wasPinching = initialTouchDistanceRef.current !== null
     if (e.touches.length < 2) {
       initialTouchDistanceRef.current = null
+      if (wasPinching) {
+        setPan(currentPanRef.current)
+        setZoom(currentZoomRef.current)
+      }
+      if (e.touches.length === 1) {
+        // Transition remaining single touch to drag
+        isDraggingRef.current = true
+        setIsDragging(true)
+        const touch = e.touches[0]
+        dragStartRef.current = {
+          x: touch.clientX - currentPanRef.current.x,
+          y: touch.clientY - currentPanRef.current.y,
+        }
+      }
     }
     if (e.touches.length === 0) {
-      setIsDragging(false)
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false
+        setIsDragging(false)
+        setPan(currentPanRef.current)
+        setZoom(currentZoomRef.current)
+      }
     }
   }
 
@@ -596,24 +881,19 @@ export default function MapCanvas({
       const cursorY = e.clientY - rect.top
       const now = performance.now()
 
-      // Normalize wheel delta across pixel (trackpad), line (mouse wheel), and page modes
       let rawDelta = e.deltaY
       if (e.deltaMode === 1) rawDelta *= 16
       else if (e.deltaMode === 2) rawDelta *= 100
 
-      // Cap single-event delta so fast trackpad flicks never jump
       const maxDelta = e.ctrlKey ? 18 : 28
       const clampedDelta = Math.max(-maxDelta, Math.min(maxDelta, rawDelta))
 
-      // Gentle, slow exponential sensitivity tailored for laptop trackpads
       const sensitivity = e.ctrlKey ? 0.0042 : 0.0018
       const zoomFactor = Math.exp(-clampedDelta * sensitivity)
 
       const minZ = minZoomRef.current
       const maxZ = minZ * MAX_RELATIVE_ZOOM
 
-      // Lock the world focal point under the cursor for the duration of a continuous trackpad gesture
-      // so edge clamping (clampPan) never causes the zoom point to drift away from where the user points.
       const gesture = wheelGestureRef.current
       const cursorMoved = Math.hypot(cursorX - gesture.screenX, cursorY - gesture.screenY) > 6
       const gestureExpired = now - gesture.lastTime > 180
@@ -640,8 +920,6 @@ export default function MapCanvas({
         height: rect.height,
       })
 
-      // Keep the gesture anchor synced with the clamped bounds so if the user started zooming
-      // near the outer edge of Layer 1, the anchor smoothly slides into Layer 2 without sticking.
       gesture.worldX = (gesture.screenX - clampedPan.x) / nextTargetZoom
       gesture.worldY = (gesture.screenY - clampedPan.y) / nextTargetZoom
 
@@ -655,7 +933,7 @@ export default function MapCanvas({
     return () => el.removeEventListener('wheel', handleWheel)
   }, [clampPan, startCameraAnimation])
 
-  // Floating Controls Zoom In/Out (smoothly animated via requestAnimationFrame)
+  // Floating Controls Zoom In/Out
   const handleZoomIn = () => {
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
@@ -721,6 +999,10 @@ export default function MapCanvas({
     return { step: 1, label: 'Vue générale (Dézoomée)', detail: 'Zoomez pour ouvrir le plan détaillé' }
   }, [isZoomedMapVisible, isRoomsVisible, isRoomNamesGlobalZoom])
 
+  useEffect(() => {
+    currentStageRef.current = currentStageInfo.step
+  }, [currentStageInfo.step])
+
   const amenityFilterClass = activeAmenityId ? `amenity-filter-${activeAmenityId}` : ''
 
   return (
@@ -740,7 +1022,6 @@ export default function MapCanvas({
       data-zoom-stage={currentStageInfo.step}
       data-relative-zoom={relativeZoom.toFixed(2)}
     >
-      {/* Crucial fill="none" on root <svg> so un-filled street/road strokes in MAP-SAT & MAP-MAIN do not default to solid black polygons */}
       <svg
         className="map-canvas-svg"
         width="100%"
@@ -749,90 +1030,41 @@ export default function MapCanvas({
         onMouseMove={handleSvgMouseMove}
         onClick={handleSvgClick}
       >
-        {/* World Space Transform Group: The SVG map fills the entire canvas */}
+        {/* World Space Transform Group: Transform directly updated on DOM via cameraGroupRef */}
         <g
+          ref={cameraGroupRef}
           className="momo-world-camera"
           transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
         >
           {/* Shared Defs from MAP-MAIN */}
-          <g dangerouslySetInnerHTML={{ __html: MAIN_DEFS_MARKUP }} />
+          <SvgDefs />
 
           {/* DOLL 1: Unzoomed Outer Map (MAP-SAT base filling 0..5483 x 0..4446) */}
-          <g
-            id="momo-unzoomed-layer"
-            className={`momo-layer momo-layer--unzoomed ${isZoomedMapVisible ? 'is-covered' : ''}`}
-            dangerouslySetInnerHTML={{ __html: SAT_INNER_MARKUP }}
-          />
+          <UnzoomedLayer isCovered={isZoomedMapVisible} />
 
-          {/* DOLL 2: Zoomed Campus Inset Map (Russian Doll 2 - opens with smooth transition animation) */}
-          <g
-            id="momo-zoomed-inset-layer"
-            className={`momo-layer momo-layer--zoomed-inset ${isZoomedMapVisible ? 'is-open' : 'is-closed'}`}
-            dangerouslySetInnerHTML={{ __html: MAIN_BASE_MARKUP }}
-          />
+          {/* DOLL 2: Zoomed Campus Inset Map */}
+          <ZoomedInsetLayer isOpen={isZoomedMapVisible} />
 
-          {/* DOLL 3: Building Rooms Vector Layer (Russian Doll 3 - appears when zooming in on the building) */}
-          <g
-            id="momo-building-rooms-wrapper"
-            className={`momo-layer momo-layer--rooms ${isRoomsVisible ? 'is-open' : 'is-closed'} ${amenityFilterClass}`}
-            dangerouslySetInnerHTML={{ __html: MAIN_ROOMS_MARKUP }}
-          />
+          {/* DOLL 3: Building Rooms Vector Layer */}
+          <BuildingRoomsLayer isOpen={isRoomsVisible} amenityFilterClass={amenityFilterClass} />
 
           {/* Highlight overlay for hovered or focused room */}
-          {isRoomsVisible &&
-            (hoveredRoomId || focusedRoomId || selectedRoomId) &&
-            momoRoomsData.rooms
-              .filter(
-                (r) =>
-                  r.id === hoveredRoomId ||
-                  r.id === focusedRoomId ||
-                  r.id === selectedRoomId
-              )
-              .map((room) => {
-                const isSelected =
-                  room.id === focusedRoomId || room.id === selectedRoomId
-                const pts = room.polygon.map((p) => `${p[0]},${p[1]}`).join(' ')
-                return (
-                  <polygon
-                    key={`highlight-${room.id}`}
-                    points={pts}
-                    className={`momo-room-highlight ${isSelected ? 'is-selected' : 'is-hovered'}`}
-                    pointerEvents="none"
-                  />
-                )
-              })}
+          {isRoomsVisible && (
+            <RoomHighlightLayer
+              activeRooms={activeRooms}
+              focusedRoomId={focusedRoomId}
+              selectedRoomId={selectedRoomId}
+            />
+          )}
 
-          {/* DOLL 4: Room Vector Names Layer (Russian Doll 4 - shows room names when zoomed in on a room) */}
-          <g
-            id="momo-room-names-layer"
-            className={`momo-layer momo-layer--labels ${isRoomsVisible ? 'is-active' : ''}`}
-            pointerEvents="none"
-          >
-            {visibleRoomLabels.map((room) => {
-              const isHighlighted =
-                room.id === hoveredRoomId ||
-                room.id === focusedRoomId ||
-                room.id === selectedRoomId
-              const displayText = room.label || room.id
-              return (
-                <g
-                  key={`label-${room.id}`}
-                  className={`momo-room-label-group ${isHighlighted ? 'is-highlighted' : ''}`}
-                  transform={`translate(${room.cx}, ${room.cy})`}
-                >
-                  <text
-                    x="0"
-                    y="0"
-                    fontSize={`${room.fontSize}px`}
-                    className={`momo-room-label-text momo-room-label-text--${room.type}`}
-                    data-room-label={room.id}
-                  >
-                    {displayText}
-                  </text>
-                </g>
-              )
-            })}
-          </g>
+          {/* DOLL 4: Room Vector Names Layer */}
+          <RoomLabelsLayer
+            isRoomsVisible={isRoomsVisible}
+            visibleRoomLabels={visibleRoomLabels}
+            hoveredRoomId={hoveredRoomId}
+            focusedRoomId={focusedRoomId}
+            selectedRoomId={selectedRoomId}
+          />
         </g>
       </svg>
 
