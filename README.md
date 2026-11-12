@@ -1,7 +1,7 @@
 # MOMO-MAP
 
 Système de cartographie interactive et de navigation intérieure pour le Collège Montmorency.
-Équipe : Tigran Michael Matinyan - Étienne Desaulnier - Alexander Saint-Jean - Redford Gurtu
+Équipe : Tigran Michael Matinyan - Étienne Desaulnier - Alexander Saint-Jean - Redford S. St-Martin
 ---
 
 ## Description
