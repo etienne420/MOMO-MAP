@@ -79,6 +79,18 @@
   pointer-events: auto;
 }
 
+.map-canvas-container.is-dragging .momo-layer--rooms.is-open {
+  pointer-events: none;
+}
+
+.momo-layer--rooms.hide-pins #momo-pins-layer {
+  display: none;
+}
+
+.momo-layer--rooms.hide-corridor-path #momo-corridor-path-layer {
+  display: none;
+}
+
 .momo-layer--rooms.is-open [data-name] {
   cursor: pointer;
   transition: fill 0.18s ease, opacity 0.18s ease, stroke-width 0.18s ease;
@@ -90,7 +102,23 @@
   stroke-width: 2.2px;
 }
 
-/* Amenity Filter Highlights on Rooms (Clean SVG rendering without drop-shadow filters) */
+/* Corridor navigation network path inside Stage 3 */
+#momo-corridor-path-layer {
+  pointer-events: none;
+}
+
+/* Room door pins inside Stage 3 (185 lightweight single-<ellipse> vectors) */
+#momo-pins-layer [data-pin-id] {
+  cursor: pointer;
+  transition: opacity 0.16s ease, stroke-width 0.16s ease, stroke 0.16s ease;
+}
+
+#momo-pins-layer [data-pin-id]:hover {
+  stroke: #111827;
+  stroke-width: 1.5px;
+}
+
+/* Amenity Filter Highlights on Rooms & Door Pins (Clean SVG rendering without drop-shadow filters) */
 .momo-layer--rooms.amenity-filter-toilettes [data-type="wc-f"],
 .momo-layer--rooms.amenity-filter-toilettes [data-type="wc-m"] {
   opacity: 1 !important;
@@ -99,8 +127,16 @@
   stroke-width: 3px !important;
 }
 
+.momo-layer--rooms.amenity-filter-toilettes [data-pin-category="wc-f"],
+.momo-layer--rooms.amenity-filter-toilettes [data-pin-category="wc-m"] {
+  opacity: 1 !important;
+  stroke: #1d4ed8 !important;
+  stroke-width: 1.6px !important;
+}
+
 .momo-layer--rooms.amenity-filter-toilettes [data-type="classroom"],
-.momo-layer--rooms.amenity-filter-toilettes [data-type="stairs"] {
+.momo-layer--rooms.amenity-filter-toilettes [data-type="stairs"],
+.momo-layer--rooms.amenity-filter-toilettes [data-pin-id]:not([data-pin-category="wc-f"]):not([data-pin-category="wc-m"]) {
   opacity: 0.25 !important;
 }
 
@@ -111,9 +147,16 @@
   stroke-width: 3px !important;
 }
 
+.momo-layer--rooms.amenity-filter-ascenseur [data-pin-category="stairs"] {
+  opacity: 1 !important;
+  stroke: #b45309 !important;
+  stroke-width: 1.6px !important;
+}
+
 .momo-layer--rooms.amenity-filter-ascenseur [data-type="classroom"],
 .momo-layer--rooms.amenity-filter-ascenseur [data-type="wc-f"],
-.momo-layer--rooms.amenity-filter-ascenseur [data-type="wc-m"] {
+.momo-layer--rooms.amenity-filter-ascenseur [data-type="wc-m"],
+.momo-layer--rooms.amenity-filter-ascenseur [data-pin-id]:not([data-pin-category="stairs"]) {
   opacity: 0.25 !important;
 }
 

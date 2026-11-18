@@ -1,13 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import mapSatSvgRaw from '../../../assets/map/MAP-SAT.svg?raw'
-import mapMainSvgRaw from '../../../assets/map/MAP-MAIN.svg?raw'
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
+import mapFinalSvgRaw from '../../../assets/map/MAP-FINAL.svg?raw'
 import momoRoomsData from '../../../assets/map/momo-main-rooms.json'
 import './MapCanvas.css'
 
 const MAP_WIDTH = momoRoomsData.viewBox.width // 5483
 const MAP_HEIGHT = momoRoomsData.viewBox.height // 4446
 const INSET_BOUNDS = momoRoomsData.insetBounds // { x: 1062.67, y: 1046.08, width: 3194, height: 2346 }
-const BUILDING_BOUNDS = momoRoomsData.buildingBounds // { minX: 2184, minY: 1870, maxX: 3501, maxY: 2664, cx: 2842.5, cy: 2267 }
+const BUILDING_BOUNDS = momoRoomsData.buildingBounds // { minX: 2067, minY: 1842, maxX: 3513, maxY: 2674, cx: 2790, cy: 2258 }
 
 // Safe interior bounds of Layer 2 (<rect x="1062.67" y="1046.08" width="3194" height="2346" fill="white" />).
 // Inset by 8px on each side so the seam/edge of Layer 1 is never visible once Layer 2 opens.
@@ -22,13 +21,20 @@ const SAFE_INSET = {
   cy: INSET_BOUNDS.y + INSET_BOUNDS.height / 2, // 2219.08
 }
 
-// Pre-index rooms by ID and lowercase ID for O(1) lookups
+// Pre-index rooms and pins by ID for O(1) lookups
 const ROOMS_BY_ID = new Map()
 const ROOMS_BY_LOWER_ID = new Map()
 for (const room of momoRoomsData.rooms) {
   if (room.id) {
     ROOMS_BY_ID.set(room.id, room)
     ROOMS_BY_LOWER_ID.set(room.id.toLowerCase(), room)
+  }
+}
+
+const PINS_BY_ID = new Map()
+for (const pin of momoRoomsData.pins || []) {
+  if (pin.id) {
+    PINS_BY_ID.set(pin.id, pin)
   }
 }
 
@@ -59,43 +65,52 @@ function deduplicatePaths(svgText) {
   return result.join('\n')
 }
 
-// Structure MAP-MAIN into controllable Russian-doll layers & strip heavy SVG filter blur dropshadows
-function buildLayeredMainSvg(rawMainSvg) {
-  const inner = extractInnerSvg(rawMainSvg)
+// Structure all layers directly from MAP-FINAL into controllable Russian-doll layers
+function buildLayeredMainSvg(rawFinalSvg) {
+  const inner = extractInnerSvg(rawFinalSvg)
   const insetStart = inner.indexOf('<rect x="1062.67" y="1046.08"')
   const roomsStart = inner.indexOf('<g opacity="0.78" id="momo-rooms-layer">')
-  const filter2Start = inner.indexOf('<g filter="url(#filter2_d_120_7893)">')
   const borderStart = inner.indexOf('<path d="M5.33301 5.33331H5477.33V4440.5H5.33301V5.33331Z"')
   const defsStart = inner.indexOf('<defs>')
 
-  if (insetStart === -1 || roomsStart === -1 || filter2Start === -1 || borderStart === -1 || defsStart === -1) {
-    return { baseZoomedMarkup: deduplicatePaths(inner), roomsMarkup: '', defsMarkup: '' }
+  if (insetStart === -1 || roomsStart === -1 || borderStart === -1 || defsStart === -1) {
+    return {
+      unzoomedMarkup: '',
+      baseZoomedMarkup: deduplicatePaths(inner),
+      roomsMarkup: '',
+      defsMarkup: '',
+    }
   }
 
-  const insetPart1 = inner.slice(insetStart, roomsStart)
-  const roomsGroup = inner.slice(roomsStart, filter2Start)
-  const insetPart2 = inner.slice(filter2Start, borderStart)
-  const defsPart = inner.slice(defsStart)
+  const rawUnzoomed = inner.slice(0, insetStart)
+  const outerBorder =
+    '<path d="M5.33301 5.33331H5477.33V4440.5H5.33301V5.33331Z" stroke-width="10.6667" stroke="black" fill="none" />'
+  const insetPart = inner.slice(insetStart, roomsStart)
+  const roomsGroup = inner.slice(roomsStart, borderStart)
+  const rawDefsPart = inner.slice(defsStart)
 
-  // Strip massive 2780x2341 feGaussianBlur drop-shadow filters
-  const cleanedBase = (insetPart1 + insetPart2)
-    .replaceAll('filter="url(#filter0_d_120_7893)"', '')
-    .replaceAll('filter="url(#filter1_d_120_7893)"', '')
-    .replaceAll('filter="url(#filter2_d_120_7893)"', '')
+  // Safeguard against any remaining blur filters so zoomed pan/zoom stays 60fps
+  const cleanedUnzoomed = rawUnzoomed.replace(/\s*filter="url\(#filter\d+_d_120_7893\)"/g, '')
+  const cleanedBase = insetPart.replace(/\s*filter="url\(#filter\d+_d_120_7893\)"/g, '')
+  const buildingSilhouette = momoRoomsData.buildingOutlineD
+    ? `<path class="momo-building-silhouette" d="${momoRoomsData.buildingOutlineD}" fill="#303030" fill-opacity="0.72" stroke="black" stroke-width="3.3814" />`
+    : ''
+  const cleanedDefs = rawDefsPart.replace(/<filter\b[^>]*>[\s\S]*?<\/filter>/gi, '')
 
   return {
-    baseZoomedMarkup: deduplicatePaths(cleanedBase),
+    unzoomedMarkup: deduplicatePaths(cleanedUnzoomed) + outerBorder,
+    baseZoomedMarkup: deduplicatePaths(cleanedBase) + buildingSilhouette,
     roomsMarkup: roomsGroup,
-    defsMarkup: defsPart,
+    defsMarkup: cleanedDefs,
   }
 }
 
-const SAT_INNER_MARKUP = deduplicatePaths(extractInnerSvg(mapSatSvgRaw))
 const {
+  unzoomedMarkup: MAIN_UNZOOMED_MARKUP,
   baseZoomedMarkup: MAIN_BASE_MARKUP,
   roomsMarkup: MAIN_ROOMS_MARKUP,
   defsMarkup: MAIN_DEFS_MARKUP,
-} = buildLayeredMainSvg(mapMainSvgRaw)
+} = buildLayeredMainSvg(mapFinalSvgRaw)
 
 const MAX_RELATIVE_ZOOM = 12
 
@@ -109,7 +124,7 @@ const UnzoomedLayer = React.memo(function UnzoomedLayer({ isCovered }) {
     <g
       id="momo-unzoomed-layer"
       className={`momo-layer momo-layer--unzoomed ${isCovered ? 'is-covered' : ''}`}
-      dangerouslySetInnerHTML={{ __html: SAT_INNER_MARKUP }}
+      dangerouslySetInnerHTML={{ __html: MAIN_UNZOOMED_MARKUP }}
     />
   )
 })
@@ -124,11 +139,20 @@ const ZoomedInsetLayer = React.memo(function ZoomedInsetLayer({ isOpen }) {
   )
 })
 
-const BuildingRoomsLayer = React.memo(function BuildingRoomsLayer({ isOpen, amenityFilterClass }) {
+const BuildingRoomsLayer = React.memo(function BuildingRoomsLayer({
+  wrapperRef,
+  isOpen,
+  amenityFilterClass,
+  showPins,
+  showCorridorPath,
+}) {
+  const hidePinsClass = showPins ? '' : 'hide-pins'
+  const hidePathClass = showCorridorPath ? '' : 'hide-corridor-path'
   return (
     <g
+      ref={wrapperRef}
       id="momo-building-rooms-wrapper"
-      className={`momo-layer momo-layer--rooms ${isOpen ? 'is-open' : 'is-closed'} ${amenityFilterClass}`}
+      className={`momo-layer momo-layer--rooms ${isOpen ? 'is-open' : 'is-closed'} ${amenityFilterClass} ${hidePinsClass} ${hidePathClass}`}
       dangerouslySetInnerHTML={{ __html: MAIN_ROOMS_MARKUP }}
     />
   )
@@ -163,6 +187,7 @@ const RoomLabelsLayer = React.memo(function RoomLabelsLayer({
   hoveredRoomId,
   focusedRoomId,
   selectedRoomId,
+  roomOverrides,
 }) {
   return (
     <g
@@ -171,11 +196,14 @@ const RoomLabelsLayer = React.memo(function RoomLabelsLayer({
       pointerEvents="none"
     >
       {visibleRoomLabels.map((room) => {
+        const override = roomOverrides?.[room.id]
         const isHighlighted =
           room.id === hoveredRoomId ||
           room.id === focusedRoomId ||
           room.id === selectedRoomId
-        const displayText = room.label || room.id
+        const displayText = override?.label ?? (room.label || room.id)
+        const fontSize = override?.fontSize ?? room.fontSize
+        const textStyle = override?.textColor ? { fill: override.textColor } : undefined
         return (
           <g
             key={`label-${room.id}`}
@@ -185,7 +213,8 @@ const RoomLabelsLayer = React.memo(function RoomLabelsLayer({
             <text
               x="0"
               y="0"
-              fontSize={`${room.fontSize}px`}
+              fontSize={`${fontSize}px`}
+              style={textStyle}
               className={`momo-room-label-text momo-room-label-text--${room.type}`}
               data-room-label={room.id}
             >
@@ -203,9 +232,15 @@ export default function MapCanvas({
   activeAmenityId = null,
   selectedRoomId = null,
   onSelectRoom = null,
+  showRoomNames = true,
+  showPins = true,
+  showCorridorPath = true,
+  roomOverrides = null,
+  pinOverrides = null,
 }) {
   const containerRef = useRef(null)
   const cameraGroupRef = useRef(null)
+  const buildingRoomsWrapperRef = useRef(null)
 
   const bgColor = theme?.backgroundColor || '#ffffff'
   const animate = theme?.animate && !theme?.reducedMotion
@@ -216,13 +251,26 @@ export default function MapCanvas({
   const [zoom, setZoom] = useState(0.35)
   const [isDragging, setIsDragging] = useState(false)
   const [hoveredRoomId, setHoveredRoomId] = useState(null)
+  const [hoveredPinId, setHoveredPinId] = useState(null)
   const [focusedRoomId, setFocusedRoomId] = useState(null)
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 })
 
   const hoveredRoomIdRef = useRef(null)
+  const hoveredPinIdRef = useRef(null)
+  const roomOverridesRef = useRef(roomOverrides)
+  const pinOverridesRef = useRef(pinOverrides)
   useEffect(() => {
     hoveredRoomIdRef.current = hoveredRoomId
   }, [hoveredRoomId])
+  useEffect(() => {
+    hoveredPinIdRef.current = hoveredPinId
+  }, [hoveredPinId])
+  useEffect(() => {
+    roomOverridesRef.current = roomOverrides
+  }, [roomOverrides])
+  useEffect(() => {
+    pinOverridesRef.current = pinOverrides
+  }, [pinOverrides])
 
   const hasInitializedRef = useRef(false)
   const isDraggingRef = useRef(false)
@@ -257,6 +305,58 @@ export default function MapCanvas({
       cameraGroupRef.current.setAttribute('transform', `translate(${p.x}, ${p.y}) scale(${z})`)
     }
   }, [])
+
+  // Prevent React re-renders (e.g. room hover/label sync) from briefly resetting the 60fps RAF camera transform
+  useLayoutEffect(() => {
+    applyCameraTransform(currentPanRef.current, currentZoomRef.current)
+  })
+
+  // Imperatively apply control-panel overrides (color, stroke, visibility) without re-rendering SVG markup
+  useEffect(() => {
+    const wrapper = buildingRoomsWrapperRef.current
+    if (!wrapper) return
+
+    const roomEls = wrapper.querySelectorAll('#momo-rooms-vectors [data-name]')
+    roomEls.forEach((el) => {
+      const rid = el.getAttribute('data-name')
+      const baseColor = el.getAttribute('data-color')
+      const ov = roomOverrides?.[rid]
+      if (ov?.color) {
+        el.setAttribute('fill', ov.color)
+      } else if (baseColor) {
+        el.setAttribute('fill', baseColor)
+      }
+      if (ov?.stroke) {
+        if (!el.hasAttribute('data-base-stroke')) {
+          el.setAttribute('data-base-stroke', el.getAttribute('stroke') || '')
+        }
+        el.setAttribute('stroke', ov.stroke)
+      } else if (el.hasAttribute('data-base-stroke')) {
+        const baseStroke = el.getAttribute('data-base-stroke')
+        if (baseStroke) {
+          el.setAttribute('stroke', baseStroke)
+        } else {
+          el.removeAttribute('stroke')
+        }
+        el.removeAttribute('data-base-stroke')
+      }
+      el.style.display = ov?.visible === false ? 'none' : ''
+    })
+
+    const pinEls = wrapper.querySelectorAll('#momo-pins-layer [data-pin-id]')
+    pinEls.forEach((el) => {
+      const pid = el.getAttribute('data-pin-id')
+      const cat = el.getAttribute('data-pin-category')
+      const baseColor = el.getAttribute('data-color')
+      const ov = pinOverrides?.[pid] || pinOverrides?.[cat]
+      if (ov?.color) {
+        el.setAttribute('fill', ov.color)
+      } else if (baseColor) {
+        el.setAttribute('fill', baseColor)
+      }
+      el.style.display = ov?.visible === false ? 'none' : ''
+    })
+  }, [roomOverrides, pinOverrides])
 
   const updateDataAttributes = useCallback((z, stage) => {
     if (containerRef.current) {
@@ -535,13 +635,14 @@ export default function MapCanvas({
 
   // Filter rooms that should display their vector name based on zoom level, screen size, hover, or focus
   const visibleRoomLabels = useMemo(() => {
-    if (!isRoomsVisible) return []
+    if (!isRoomsVisible || !showRoomNames) return []
 
     const pad = 120
     const { minX, minY, maxX, maxY, centerX, centerY } = visibleWorldBounds
 
     return momoRoomsData.rooms.filter((room) => {
       if (room.type === 'wall' || !room.id) return false
+      if (roomOverrides?.[room.id]?.visible === false) return false
 
       const activeId = selectedRoomId || focusedRoomId
       if (room.id === hoveredRoomId || room.id === activeId) {
@@ -591,6 +692,8 @@ export default function MapCanvas({
     })
   }, [
     isRoomsVisible,
+    showRoomNames,
+    roomOverrides,
     isRoomNamesGlobalZoom,
     relativeZoom,
     visibleWorldBounds,
@@ -705,18 +808,36 @@ export default function MapCanvas({
     }
   }, [])
 
-  // Hover & click detection on room vectors inside #momo-rooms-layer
+  // Hover & click detection on room vectors and door pins inside #momo-rooms-layer
   const handleSvgMouseMove = useCallback((e) => {
     if (isDraggingRef.current) return
     if (!isRoomsVisibleRef.current) {
       if (hoveredRoomIdRef.current) setHoveredRoomId(null)
+      if (hoveredPinIdRef.current) setHoveredPinId(null)
       return
     }
+
+    const pinTarget = e.target.closest('[data-pin-id]')
+    if (pinTarget) {
+      const pid = pinTarget.getAttribute('data-pin-id')
+      const pcat = pinTarget.getAttribute('data-pin-category')
+      const rid = pinTarget.getAttribute('data-room-id')
+      const pinHidden = pinOverridesRef.current?.[pid]?.visible === false || pinOverridesRef.current?.[pcat]?.visible === false
+      if (pid && !pinHidden) {
+        if (hoveredPinIdRef.current !== pid) setHoveredPinId(pid)
+        if (rid && roomOverridesRef.current?.[rid]?.visible !== false) {
+          if (hoveredRoomIdRef.current !== rid) setHoveredRoomId(rid)
+        }
+        return
+      }
+    }
+    if (hoveredPinIdRef.current) setHoveredPinId(null)
+
     const target = e.target.closest('[data-name]')
     if (target) {
       const rid = target.getAttribute('data-name')
       const rtype = target.getAttribute('data-type')
-      if (rid && rtype !== 'wall') {
+      if (rid && rtype !== 'wall' && roomOverridesRef.current?.[rid]?.visible !== false) {
         if (hoveredRoomIdRef.current !== rid) setHoveredRoomId(rid)
         return
       }
@@ -727,8 +848,29 @@ export default function MapCanvas({
   const handleSvgClick = useCallback(
     (e) => {
       if (isDraggingRef.current) return
+      if (!isRoomsVisibleRef.current) return
+
+      const pinTarget = e.target.closest('[data-pin-id]')
+      if (pinTarget) {
+        const pid = pinTarget.getAttribute('data-pin-id')
+        const rid = pinTarget.getAttribute('data-room-id')
+        if (rid) {
+          setFocusedRoomId(rid)
+          onSelectRoom?.(rid)
+          const room = getRoomById(rid)
+          const pin = PINS_BY_ID.get(pid)
+          const curRelZoom = minZoomRef.current > 0 ? currentZoomRef.current / minZoomRef.current : 1
+          const targetX = room?.cx ?? pin?.cx
+          const targetY = room?.cy ?? pin?.cy
+          if (targetX != null && targetY != null && curRelZoom < roomNamesThreshold * 1.3) {
+            zoomToWorldPoint(targetX, targetY, Math.max(roomNamesThreshold * 1.4, 4.8))
+          }
+          return
+        }
+      }
+
       const target = e.target.closest('[data-name]')
-      if (target && isRoomsVisibleRef.current) {
+      if (target) {
         const rid = target.getAttribute('data-name')
         const rtype = target.getAttribute('data-type')
         if (rid && rtype !== 'wall') {
@@ -980,6 +1122,7 @@ export default function MapCanvas({
     if (!fit) return
     setFocusedRoomId(null)
     setHoveredRoomId(null)
+    setHoveredPinId(null)
     targetZoomRef.current = fit.minZoom
     targetPanRef.current = fit.pan
     startCameraAnimation()
@@ -1036,17 +1179,23 @@ export default function MapCanvas({
           className="momo-world-camera"
           transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
         >
-          {/* Shared Defs from MAP-MAIN */}
+          {/* Shared Defs from MAP-FINAL */}
           <SvgDefs />
 
-          {/* DOLL 1: Unzoomed Outer Map (MAP-SAT base filling 0..5483 x 0..4446) */}
+          {/* DOLL 1: Unzoomed Outer Map (restyled Layer 1 from MAP-FINAL filling 0..5483 x 0..4446) */}
           <UnzoomedLayer isCovered={isZoomedMapVisible} />
 
           {/* DOLL 2: Zoomed Campus Inset Map */}
           <ZoomedInsetLayer isOpen={isZoomedMapVisible} />
 
-          {/* DOLL 3: Building Rooms Vector Layer */}
-          <BuildingRoomsLayer isOpen={isRoomsVisible} amenityFilterClass={amenityFilterClass} />
+          {/* DOLL 3: Building Rooms, Corridor Path & Door Pins Layer */}
+          <BuildingRoomsLayer
+            wrapperRef={buildingRoomsWrapperRef}
+            isOpen={isRoomsVisible}
+            amenityFilterClass={amenityFilterClass}
+            showPins={showPins}
+            showCorridorPath={showCorridorPath}
+          />
 
           {/* Highlight overlay for hovered or focused room */}
           {isRoomsVisible && (
@@ -1058,13 +1207,16 @@ export default function MapCanvas({
           )}
 
           {/* DOLL 4: Room Vector Names Layer */}
-          <RoomLabelsLayer
-            isRoomsVisible={isRoomsVisible}
-            visibleRoomLabels={visibleRoomLabels}
-            hoveredRoomId={hoveredRoomId}
-            focusedRoomId={focusedRoomId}
-            selectedRoomId={selectedRoomId}
-          />
+          {showRoomNames && (
+            <RoomLabelsLayer
+              isRoomsVisible={isRoomsVisible}
+              visibleRoomLabels={visibleRoomLabels}
+              hoveredRoomId={hoveredRoomId}
+              focusedRoomId={focusedRoomId}
+              selectedRoomId={selectedRoomId}
+              roomOverrides={roomOverrides}
+            />
+          )}
         </g>
       </svg>
 
@@ -1083,9 +1235,9 @@ export default function MapCanvas({
             <span className="momo-zoom-stage-title">{currentStageInfo.label}</span>
             <span className="momo-zoom-stage-subtitle">
               {hoveredRoomId
-                ? `Local : ${hoveredRoomId}`
+                ? `${hoveredPinId ? 'Porte · ' : ''}Local : ${roomOverrides?.[hoveredRoomId]?.label ?? hoveredRoomId}`
                 : focusedRoomId
-                  ? `Local sélectionné : ${focusedRoomId}`
+                  ? `Local sélectionné : ${roomOverrides?.[focusedRoomId]?.label ?? focusedRoomId}`
                   : currentStageInfo.detail}
             </span>
           </div>
