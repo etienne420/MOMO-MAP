@@ -240,7 +240,8 @@ export default function MapCanvas({
   pinOverrides = null,
 }) {
   const containerRef = useRef(null)
-  const cameraGroupRef = useRef(null)
+  const cameraSvgRef = useRef(null)
+  const movingTimeoutRef = useRef(null)
   const buildingRoomsWrapperRef = useRef(null)
 
   const bgColor = theme?.backgroundColor || '#ffffff'
@@ -300,10 +301,37 @@ export default function MapCanvas({
     worldY: 0,
   })
 
-  // Direct DOM transform updater - updates SVG camera transform directly with zero React re-render
+  // Direct DOM transform updater - applies the camera as a CSS transform on the <svg> element.
+  // A CSS transform lets the browser composite the map on the GPU instead of re-rasterizing
+  // every SVG path on each frame (big win on older / integrated GPUs).
   const applyCameraTransform = useCallback((p, z) => {
-    if (cameraGroupRef.current) {
-      cameraGroupRef.current.setAttribute('transform', `translate(${p.x}, ${p.y}) scale(${z})`)
+    if (cameraSvgRef.current) {
+      cameraSvgRef.current.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) scale(${z})`
+    }
+  }, [])
+
+  // While the camera moves, promote the SVG to its own GPU layer (will-change) so it is scaled
+  // as a cached bitmap. Once motion stops, drop the layer so the browser redraws it crisp.
+  const setMoving = useCallback((moving) => {
+    const svg = cameraSvgRef.current
+    if (!svg) return
+    if (movingTimeoutRef.current) {
+      clearTimeout(movingTimeoutRef.current)
+      movingTimeoutRef.current = null
+    }
+    if (moving) {
+      svg.classList.add('is-moving')
+    } else {
+      movingTimeoutRef.current = setTimeout(() => {
+        svg.classList.remove('is-moving')
+        movingTimeoutRef.current = null
+      }, 150)
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (movingTimeoutRef.current) clearTimeout(movingTimeoutRef.current)
     }
   }, [])
 
@@ -438,6 +466,7 @@ export default function MapCanvas({
   // Smooth 60fps requestAnimationFrame camera interpolation loop for silky trackpad & button zooming
   // Direct DOM updates bypass React re-renders during interpolation
   const startCameraAnimation = useCallback(() => {
+    setMoving(true)
     if (rafIdRef.current !== null) return
 
     const step = (now) => {
@@ -472,6 +501,7 @@ export default function MapCanvas({
         setPan(finalPan)
         rafIdRef.current = null
         lastFrameTimeRef.current = 0
+        setMoving(false)
         return
       }
 
@@ -491,26 +521,21 @@ export default function MapCanvas({
       // Zero-re-render direct DOM update
       applyCameraTransform(nextP, nextZ)
       const stageNow = getStageStep(nextZ)
-      updateDataAttributes(nextZ, stageNow)
 
-      // Commit React state if crossing stage threshold or throttled interval in rooms mode
+      // Commit React state only when crossing a stage threshold. Room labels are refreshed once
+      // the zoom settles, so the map isn't re-rendered (and re-rasterized) mid-animation.
       if (stageNow !== currentStageRef.current) {
         currentStageRef.current = stageNow
+        updateDataAttributes(nextZ, stageNow)
         setZoom(nextZ)
         setPan(nextP)
-      } else if (stageNow >= 3) {
-        if (now - lastThrottledSyncRef.current > 120) {
-          lastThrottledSyncRef.current = now
-          setZoom(nextZ)
-          setPan(nextP)
-        }
       }
 
       rafIdRef.current = requestAnimationFrame(step)
     }
 
     rafIdRef.current = requestAnimationFrame(step)
-  }, [clampPan, applyCameraTransform, updateDataAttributes, getStageStep])
+  }, [clampPan, applyCameraTransform, updateDataAttributes, getStageStep, setMoving])
 
   useEffect(() => {
     return () => stopCameraAnimation()
@@ -797,6 +822,7 @@ export default function MapCanvas({
       const clamped = clampPan(candidatePan, currentZoomRef.current)
       currentPanRef.current = clamped
       targetPanRef.current = clamped
+      setMoving(true)
 
       // Direct DOM transform update without React re-render
       applyCameraTransform(clamped, currentZoomRef.current)
@@ -809,17 +835,18 @@ export default function MapCanvas({
         }
       }
     },
-    [clampPan, applyCameraTransform]
+    [clampPan, applyCameraTransform, setMoving]
   )
 
   const handleMouseUp = useCallback(() => {
     if (isDraggingRef.current) {
       isDraggingRef.current = false
       setIsDragging(false)
+      setMoving(false)
       setPan(currentPanRef.current)
       setZoom(currentZoomRef.current)
     }
-  }, [])
+  }, [setMoving])
 
   // Hover & click detection on room vectors and door pins inside #momo-rooms-layer
   const handleSvgMouseMove = useCallback((e) => {
@@ -941,6 +968,7 @@ export default function MapCanvas({
       const clamped = clampPan(candidatePan, currentZoomRef.current)
       currentPanRef.current = clamped
       targetPanRef.current = clamped
+      setMoving(true)
 
       applyCameraTransform(clamped, currentZoomRef.current)
 
@@ -976,21 +1004,16 @@ export default function MapCanvas({
       currentPanRef.current = clamped
       targetPanRef.current = clamped
 
+      setMoving(true)
       applyCameraTransform(clamped, roundedZoom)
       const stageNow = getStageStep(roundedZoom)
-      updateDataAttributes(roundedZoom, stageNow)
 
+      // Labels refresh when the pinch ends (see handleTouchEnd)
       if (stageNow !== currentStageRef.current) {
         currentStageRef.current = stageNow
+        updateDataAttributes(roundedZoom, stageNow)
         setZoom(roundedZoom)
         setPan(clamped)
-      } else if (stageNow >= 3) {
-        const now = performance.now()
-        if (now - lastThrottledSyncRef.current > 120) {
-          lastThrottledSyncRef.current = now
-          setZoom(roundedZoom)
-          setPan(clamped)
-        }
       }
     }
   }
@@ -1015,6 +1038,7 @@ export default function MapCanvas({
       }
     }
     if (e.touches.length === 0) {
+      setMoving(false)
       if (isDraggingRef.current) {
         isDraggingRef.current = false
         setIsDragging(false)
@@ -1179,19 +1203,18 @@ export default function MapCanvas({
       data-relative-zoom={relativeZoom.toFixed(2)}
     >
       <svg
+        ref={cameraSvgRef}
         className="map-canvas-svg"
-        width="100%"
-        height="100%"
+        width={MAP_WIDTH}
+        height={MAP_HEIGHT}
+        viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
         fill="none"
+        style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
         onMouseMove={handleSvgMouseMove}
         onClick={handleSvgClick}
       >
-        {/* World Space Transform Group: Transform directly updated on DOM via cameraGroupRef */}
-        <g
-          ref={cameraGroupRef}
-          className="momo-world-camera"
-          transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
-        >
+        {/* World Space group: the camera is a CSS transform on the <svg> (see applyCameraTransform) */}
+        <g className="momo-world-camera">
           {/* Shared Defs from MAP-FINAL */}
           <SvgDefs />
 

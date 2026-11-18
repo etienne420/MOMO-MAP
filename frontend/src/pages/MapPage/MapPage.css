@@ -55,8 +55,8 @@
 .map-page-sidebar .route-card,
 .map-page-sidebar .amenities-card {
   width: 100%;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
+  /* No backdrop-filter: blurring the map behind the cards on every frame made zooming lag */
+  background: rgba(255, 255, 255, 0.97);
   box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
 }
 
