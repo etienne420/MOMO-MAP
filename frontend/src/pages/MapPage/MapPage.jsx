@@ -4,13 +4,24 @@ import AuthHeader from '../../components/auth/AuthHeader/AuthHeader'
 import RoutePanel from '../../components/map/RoutePanel/RoutePanel'
 import AmenitiesPanel from '../../components/map/AmenitiesPanel/AmenitiesPanel'
 import MapCanvas from '../../components/map/MapCanvas/MapCanvas'
-import { getCurrentUserId, fetchCurrentUser } from '../../services/auth'
+import DevControlModal from '../../components/map/DevControlModal/DevControlModal'
+import {
+  getCurrentUserId,
+  fetchCurrentUser,
+  getSessionRole,
+  getDevModeSetting,
+  setDevModeSetting,
+} from '../../services/auth'
 import './MapPage.css'
 
 export default function MapPage() {
   const [activeAmenityId, setActiveAmenityId] = useState(null)
   const [selectedRoomId, setSelectedRoomId] = useState(null)
   const [theme, setTheme] = useState(null)
+  const [isDevMode, setIsDevMode] = useState(
+    () => getSessionRole() === 'admin' && getDevModeSetting(),
+  )
+  const [isDevModalOpen, setIsDevModalOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -18,7 +29,21 @@ export default function MapPage() {
 
     const load = () => {
       fetchCurrentUser()
-        .then((u) => setTheme(u.themeActuel || null))
+        .then((u) => {
+          setTheme(u.themeActuel || null)
+          const adminRole = u.role === 'admin' || getSessionRole() === 'admin'
+          if (adminRole) {
+            const devEnabled =
+              typeof u.settings?.devMode === 'boolean'
+                ? u.settings.devMode
+                : getDevModeSetting()
+            setDevModeSetting(devEnabled)
+            setIsDevMode(devEnabled)
+          } else {
+            setIsDevMode(false)
+            setIsDevModalOpen(false)
+          }
+        })
         .catch(() => setTheme(null))
     }
 
@@ -36,6 +61,22 @@ export default function MapPage() {
         selectedRoomId={selectedRoomId}
         onSelectRoom={setSelectedRoomId}
       />
+
+      {isDevMode && (
+        <>
+          <button
+            type="button"
+            className={`map-page-dev-btn ${isDevModalOpen ? 'is-open' : ''}`}
+            onClick={() => setIsDevModalOpen((prev) => !prev)}
+          >
+            Dev
+          </button>
+          <DevControlModal
+            isOpen={isDevModalOpen}
+            onClose={() => setIsDevModalOpen(false)}
+          />
+        </>
+      )}
 
       {/* Floating Navigation Sidebar */}
       <aside className="map-page-sidebar" aria-label="Navigation et commodités">
