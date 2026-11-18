@@ -245,6 +245,14 @@ test("validateSettingsUpdate enforces object and boolean values", async (t) => {
   });
   assert.equal(notBool.status, 400);
 
+  // devMode non-booléen
+  const badDevMode = await fetch(`${base}/${validUid}/settings`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ settings: { devMode: "yes" } }),
+  });
+  assert.equal(badDevMode.status, 400);
+
   // Valide
   const valid = await fetch(`${base}/${validUid}/settings`, {
     method: "PATCH",
@@ -254,6 +262,7 @@ test("validateSettingsUpdate enforces object and boolean values", async (t) => {
         turnByTurnGuidance: true,
         showSchoolInsights: false,
         reducedMotion: true,
+        devMode: true,
       },
     }),
   });

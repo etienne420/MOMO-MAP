@@ -200,6 +200,10 @@ export const validateSettingsUpdate = [
     .optional()
     .isBoolean()
     .withMessage("reducedMotion doit être un booléen."),
+  body("settings.devMode")
+    .optional()
+    .isBoolean()
+    .withMessage("devMode doit être un booléen."),
   handleValidationErrors,
 ];
 

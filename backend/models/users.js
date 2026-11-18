@@ -47,6 +47,7 @@ const userSchema = new mongoose.Schema({
     turnByTurnGuidance: { type: Boolean, default: true },
     showSchoolInsights: { type: Boolean, default: true },
     reducedMotion: { type: Boolean, default: false },
+    devMode: { type: Boolean, default: false },
   },
 });
 

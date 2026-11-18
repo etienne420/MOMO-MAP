@@ -84,6 +84,36 @@
   border-color: #d1d5db;
 }
 
+.map-page-dev-btn {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  z-index: 27;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-input, #e2e8f0);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--color-text-title, #0f172a);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.map-page-dev-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.map-page-dev-btn.is-open {
+  background: var(--color-primary, #1e6b37);
+  border-color: var(--color-primary, #1e6b37);
+  color: #ffffff;
+}
+
 @media (max-width: 640px) {
   .map-page-screen {
     padding-left: 16px;
