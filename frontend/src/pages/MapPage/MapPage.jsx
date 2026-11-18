@@ -22,6 +22,7 @@ export default function MapPage() {
   const [activeAmenityId, setActiveAmenityId] = useState(null)
   const [selectedRoomId, setSelectedRoomId] = useState(null)
   const [selectedPinId, setSelectedPinId] = useState(null)
+  const [route, setRoute] = useState(null)
   const [theme, setTheme] = useState(null)
   const [isDevMode, setIsDevMode] = useState(
     () => getSessionRole() === 'admin' && getDevModeSetting(),
@@ -108,6 +109,7 @@ export default function MapPage() {
         onSelectRoom={setSelectedRoomId}
         roomOverrides={vectorOverrides.roomOverrides}
         pinOverrides={vectorOverrides.pinOverrides}
+        route={route}
       />
 
       {isDevMode && (
@@ -142,7 +144,7 @@ export default function MapPage() {
             Paramètres
           </button>
         </div>
-        <RoutePanel onSelectRoom={setSelectedRoomId} />
+        <RoutePanel onSelectRoom={setSelectedRoomId} onRouteChange={setRoute} />
         <AmenitiesPanel
           activeAmenityId={activeAmenityId}
           onSelectAmenity={setActiveAmenityId}

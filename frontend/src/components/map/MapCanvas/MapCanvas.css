@@ -162,6 +162,41 @@
   opacity: 0.25 !important;
 }
 
+/* Itinéraire (départ -> destination) */
+.momo-layer--rooms.has-route #momo-corridor-path-layer {
+  opacity: 0.35;
+}
+
+.momo-route-casing,
+.momo-route-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.momo-route-casing {
+  stroke: #ffffff;
+  stroke-width: 8px;
+}
+
+.momo-route-line {
+  stroke: var(--color-primary, #1e6b37);
+  stroke-width: 4.5px;
+}
+
+.momo-route-marker {
+  stroke: #ffffff;
+  stroke-width: 2px;
+}
+
+.momo-route-marker--start {
+  fill: var(--color-primary, #1e6b37);
+}
+
+.momo-route-marker--end {
+  fill: var(--color-error, #ef4444);
+}
+
 /* Highlight Polygon for Hovered / Selected Room */
 .momo-room-highlight {
   fill: rgba(16, 185, 129, 0.28);

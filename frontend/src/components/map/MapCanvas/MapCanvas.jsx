@@ -145,14 +145,16 @@ const BuildingRoomsLayer = React.memo(function BuildingRoomsLayer({
   amenityFilterClass,
   showPins,
   showCorridorPath,
+  hasRoute,
 }) {
   const hidePinsClass = showPins ? '' : 'hide-pins'
   const hidePathClass = showCorridorPath ? '' : 'hide-corridor-path'
+  const routeClass = hasRoute ? 'has-route' : ''
   return (
     <g
       ref={wrapperRef}
       id="momo-building-rooms-wrapper"
-      className={`momo-layer momo-layer--rooms ${isOpen ? 'is-open' : 'is-closed'} ${amenityFilterClass} ${hidePinsClass} ${hidePathClass}`}
+      className={`momo-layer momo-layer--rooms ${isOpen ? 'is-open' : 'is-closed'} ${amenityFilterClass} ${hidePinsClass} ${hidePathClass} ${routeClass}`}
       dangerouslySetInnerHTML={{ __html: MAIN_ROOMS_MARKUP }}
     />
   )
@@ -178,6 +180,22 @@ const RoomHighlightLayer = React.memo(function RoomHighlightLayer({
         )
       })}
     </>
+  )
+})
+
+// Itinéraire calculé (utils/routing.js) : tracé le long du couloir, de porte à porte
+const RouteLayer = React.memo(function RouteLayer({ route }) {
+  if (!route?.points?.length) return null
+  const pts = route.points.map((p) => `${p.x},${p.y}`).join(' ')
+  const start = route.points[0]
+  const end = route.points[route.points.length - 1]
+  return (
+    <g id="momo-route-layer" pointerEvents="none">
+      <polyline points={pts} className="momo-route-casing" />
+      <polyline points={pts} className="momo-route-line" />
+      <circle cx={start.x} cy={start.y} r="6" className="momo-route-marker momo-route-marker--start" />
+      <circle cx={end.x} cy={end.y} r="6" className="momo-route-marker momo-route-marker--end" />
+    </g>
   )
 })
 
@@ -238,6 +256,7 @@ export default function MapCanvas({
   showCorridorPath = true,
   roomOverrides = null,
   pinOverrides = null,
+  route = null,
 }) {
   const containerRef = useRef(null)
   const cameraSvgRef = useRef(null)
@@ -800,6 +819,24 @@ export default function MapCanvas({
     }
   }, [selectedPinId, zoomToWorldPoint])
 
+  // Quand un itinéraire est calculé, cadrer la caméra pour voir tout le trajet
+  useEffect(() => {
+    if (!route?.bounds) return
+    const el = containerRef.current
+    const minZ = minZoomRef.current
+    if (!el || !minZ) return
+    const rect = el.getBoundingClientRect()
+    const sidebarOffset = rect.width > 768 ? 260 : 0
+    const pad = 80
+    const availW = Math.max(rect.width - sidebarOffset - pad * 2, 120)
+    const availH = Math.max(rect.height - pad * 2 - 60, 120) // 60 = pastille d'étape en bas
+    const { minX, minY, maxX, maxY } = route.bounds
+    const fitZoom = Math.min(availW / Math.max(maxX - minX, 1), availH / Math.max(maxY - minY, 1))
+    const insetCoverZ = Math.max(rect.width / SAFE_INSET.width, rect.height / SAFE_INSET.height)
+    const relZoom = Math.min(Math.max(fitZoom, insetCoverZ * 1.02) / minZ, 8)
+    zoomToWorldPoint((minX + maxX) / 2, (minY + maxY) / 2, relZoom)
+  }, [route, zoomToWorldPoint])
+
   // Mouse Drag Handlers with direct DOM transform updates
   const handleMouseDown = (e) => {
     if (e.button !== 0) return // Only primary click
@@ -1231,6 +1268,7 @@ export default function MapCanvas({
             amenityFilterClass={amenityFilterClass}
             showPins={showPins}
             showCorridorPath={showCorridorPath}
+            hasRoute={Boolean(route)}
           />
 
           {/* Highlight overlay for hovered or focused room & selected/hovered pin */}
@@ -1258,6 +1296,9 @@ export default function MapCanvas({
               })()}
             </>
           )}
+
+          {/* Itinéraire entre le départ et la destination */}
+          <RouteLayer route={route} />
 
           {/* DOLL 4: Room Vector Names Layer */}
           {showRoomNames && (
