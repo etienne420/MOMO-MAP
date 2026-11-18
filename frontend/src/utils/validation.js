@@ -12,7 +12,8 @@ export function isValidEmailFormat(email) {
 export function isInstitutionalEmail(email, domain = 'cmontmorency.qc.ca') {
   if (!isValidEmailFormat(email)) return false
   const cleanEmail = email.trim().toLowerCase()
-  return cleanEmail.endsWith(`@${domain}`) || cleanEmail.endsWith(`.cmontmorency.qc.ca`)
+  const emailDomain = cleanEmail.slice(cleanEmail.lastIndexOf('@') + 1)
+  return emailDomain === domain || emailDomain.endsWith(`.${domain}`)
 }
 
 export function validateSignInForm(formData) {
@@ -47,6 +48,8 @@ export function validateSignUpForm(formData) {
     errors.email = 'Please enter your email.'
   } else if (!isValidEmailFormat(formData.email)) {
     errors.email = 'Please enter a valid email address.'
+  } else if (!isInstitutionalEmail(formData.email)) {
+    errors.email = 'Please use a valid @cmontmorency.qc.ca email address.'
   }
 
   if (!formData.password) {
@@ -68,6 +71,8 @@ export function validateResetForm(formData) {
     errors.email = 'Please enter your email.'
   } else if (!isValidEmailFormat(formData.email)) {
     errors.email = 'Please enter a valid email address.'
+  } else if (!isInstitutionalEmail(formData.email)) {
+    errors.email = 'Please use a valid @cmontmorency.qc.ca email address.'
   }
 
   return {
