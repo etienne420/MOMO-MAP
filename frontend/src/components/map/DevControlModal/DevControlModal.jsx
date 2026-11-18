@@ -28,6 +28,16 @@ function getCategoryTag(kind, type) {
   return 'Local'
 }
 
+function normalizeHex(color) {
+  if (typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color.trim())) {
+    return color.trim()
+  }
+  if (typeof color === 'string' && color.trim().toLowerCase() === 'black') {
+    return '#000000'
+  }
+  return '#303030'
+}
+
 const ALL_VECTOR_OBJECTS = [
   ...momoRoomsData.rooms
     .filter((room) => room.type !== 'wall' && room.id)
@@ -37,7 +47,7 @@ const ALL_VECTOR_OBJECTS = [
       filterGroup: getRoomFilterGroup(room.type),
       id: room.id,
       defaultLabel: room.label || room.id,
-      defaultColor: room.color || '#303030',
+      defaultColor: normalizeHex(room.color || '#303030'),
       categoryTag: getCategoryTag('room', room.type),
       cx: room.cx,
       cy: room.cy,
@@ -50,7 +60,7 @@ const ALL_VECTOR_OBJECTS = [
     id: pin.id,
     roomId: pin.roomId || '',
     defaultLabel: pin.roomId ? `${pin.id} (${pin.roomId})` : pin.id,
-    defaultColor: pin.color || '#CBD5E1',
+    defaultColor: normalizeHex(pin.color || '#CBD5E1'),
     categoryTag: 'Pin',
     cx: pin.cx,
     cy: pin.cy,
@@ -58,17 +68,119 @@ const ALL_VECTOR_OBJECTS = [
   })),
 ]
 
+function DevEditCard({ item, override, onUpdate, onReset, onClose }) {
+  const [nameInput, setNameInput] = useState(
+    () => override?.label ?? item.defaultLabel,
+  )
+  const [colorInput, setColorInput] = useState(
+    () => normalizeHex(override?.color ?? item.defaultColor),
+  )
+
+  const handleNameChange = (e) => {
+    const val = e.target.value
+    setNameInput(val)
+    onUpdate(item, { label: val, color: colorInput })
+  }
+
+  const handleColorPicker = (e) => {
+    const hex = e.target.value
+    setColorInput(hex)
+    onUpdate(item, { label: nameInput, color: hex })
+  }
+
+  const handleColorText = (e) => {
+    const val = e.target.value
+    setColorInput(val)
+    if (/^#[0-9a-fA-F]{6}$/.test(val.trim())) {
+      onUpdate(item, { label: nameInput, color: val.trim() })
+    }
+  }
+
+  const handleResetItem = () => {
+    setNameInput(item.defaultLabel)
+    setColorInput(item.defaultColor)
+    onReset(item)
+  }
+
+  return (
+    <div className="dev-modal-card dev-edit-card" role="dialog" aria-label={`Modifier ${item.id}`}>
+      <div className="dev-modal-card__header">
+        <span className="dev-modal-card__title">
+          {item.id} · {item.categoryTag}
+        </span>
+        <button
+          type="button"
+          className="dev-modal-card__close"
+          onClick={onClose}
+          aria-label="Fermer l'édition"
+        >
+          ×
+        </button>
+      </div>
+
+      <label className="dev-edit-field">
+        <span className="dev-edit-field__label">Nom</span>
+        <input
+          type="text"
+          className="dev-modal-search"
+          value={nameInput}
+          onChange={handleNameChange}
+        />
+      </label>
+
+      <label className="dev-edit-field">
+        <span className="dev-edit-field__label">Couleur</span>
+        <div className="dev-edit-color-row">
+          <input
+            type="color"
+            className="dev-edit-color-picker"
+            value={normalizeHex(colorInput)}
+            onChange={handleColorPicker}
+            aria-label="Sélecteur de couleur"
+          />
+          <input
+            type="text"
+            className="dev-modal-search dev-edit-color-hex"
+            value={colorInput}
+            onChange={handleColorText}
+            maxLength={7}
+          />
+        </div>
+      </label>
+
+      <div className="dev-edit-actions">
+        <button
+          type="button"
+          className="dev-modal-filter-btn"
+          onClick={handleResetItem}
+        >
+          Réinitialiser
+        </button>
+        <button
+          type="button"
+          className="dev-modal-filter-btn is-active"
+          onClick={onClose}
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function DevControlModal({
   isOpen,
   onClose,
   roomOverrides = null,
   pinOverrides = null,
-  selectedKey = null,
-  onSelectObject = null,
+  onUpdateOverride = null,
+  onResetOverride = null,
+  onSelectVector = null,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
   const [scrollTop, setScrollTop] = useState(0)
+  const [selectedItemKey, setSelectedItemKey] = useState(null)
   const listRef = useRef(null)
 
   const enrichedObjects = useMemo(() => {
@@ -97,6 +209,11 @@ export default function DevControlModal({
     })
   }, [enrichedObjects, activeFilter, searchQuery])
 
+  const selectedItem = useMemo(() => {
+    if (!selectedItemKey) return null
+    return ALL_VECTOR_OBJECTS.find((item) => item.key === selectedItemKey) || null
+  }, [selectedItemKey])
+
   if (!isOpen) return null
 
   const totalHeight = filteredObjects.length * ROW_HEIGHT
@@ -116,6 +233,17 @@ export default function DevControlModal({
     setScrollTop(0)
     if (listRef.current) listRef.current.scrollTop = 0
   }
+
+  const handleSelectRow = (item) => {
+    setSelectedItemKey(item.key)
+    onSelectVector?.(item)
+  }
+
+  const activeOverride = selectedItem
+    ? selectedItem.kind === 'room'
+      ? roomOverrides?.[selectedItem.id]
+      : pinOverrides?.[selectedItem.id]
+    : null
 
   return (
     <div className="dev-modal-dock" role="dialog" aria-label="Panneau développeur">
@@ -174,9 +302,9 @@ export default function DevControlModal({
                   <button
                     key={item.key}
                     type="button"
-                    className={`dev-modal-row ${selectedKey === item.key ? 'is-selected' : ''}`}
+                    className={`dev-modal-row ${selectedItemKey === item.key ? 'is-selected' : ''}`}
                     style={{ height: `${ROW_HEIGHT}px` }}
-                    onClick={() => onSelectObject?.(item)}
+                    onClick={() => handleSelectRow(item)}
                   >
                     <span
                       className="dev-modal-row__swatch"
@@ -192,6 +320,17 @@ export default function DevControlModal({
           )}
         </div>
       </div>
+
+      {selectedItem && (
+        <DevEditCard
+          key={selectedItem.key}
+          item={selectedItem}
+          override={activeOverride}
+          onUpdate={onUpdateOverride}
+          onReset={onResetOverride}
+          onClose={() => setSelectedItemKey(null)}
+        />
+      )}
     </div>
   )
 }

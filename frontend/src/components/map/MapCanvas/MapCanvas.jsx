@@ -231,6 +231,7 @@ export default function MapCanvas({
   theme = null,
   activeAmenityId = null,
   selectedRoomId = null,
+  selectedPinId = null,
   onSelectRoom = null,
   showRoomNames = true,
   showPins = true,
@@ -750,7 +751,7 @@ export default function MapCanvas({
     [clampPan, startCameraAnimation]
   )
 
-  // If parent selects a room (e.g., via search), smoothly zoom to that room
+  // If parent selects a room (e.g., via search or dev panel), smoothly zoom to that room
   const prevSelectedRoomRef = useRef(null)
   useEffect(() => {
     if (!selectedRoomId || selectedRoomId === prevSelectedRoomRef.current) return
@@ -761,6 +762,18 @@ export default function MapCanvas({
       zoomToWorldPoint(room.cx, room.cy, Math.max(curRelZoom, 5.2))
     }
   }, [selectedRoomId, zoomToWorldPoint])
+
+  // If parent selects a specific pin (e.g., via dev panel), smoothly zoom to that pin
+  const prevSelectedPinRef = useRef(null)
+  useEffect(() => {
+    if (!selectedPinId || selectedPinId === prevSelectedPinRef.current) return
+    prevSelectedPinRef.current = selectedPinId
+    const pin = PINS_BY_ID.get(selectedPinId)
+    if (pin) {
+      const curRelZoom = minZoomRef.current > 0 ? currentZoomRef.current / minZoomRef.current : 1
+      zoomToWorldPoint(pin.cx, pin.cy, Math.max(curRelZoom, 5.6))
+    }
+  }, [selectedPinId, zoomToWorldPoint])
 
   // Mouse Drag Handlers with direct DOM transform updates
   const handleMouseDown = (e) => {
@@ -1197,13 +1210,30 @@ export default function MapCanvas({
             showCorridorPath={showCorridorPath}
           />
 
-          {/* Highlight overlay for hovered or focused room */}
+          {/* Highlight overlay for hovered or focused room & selected/hovered pin */}
           {isRoomsVisible && (
-            <RoomHighlightLayer
-              activeRooms={activeRooms}
-              focusedRoomId={focusedRoomId}
-              selectedRoomId={selectedRoomId}
-            />
+            <>
+              <RoomHighlightLayer
+                activeRooms={activeRooms}
+                focusedRoomId={focusedRoomId}
+                selectedRoomId={selectedRoomId}
+              />
+              {(hoveredPinId || selectedPinId) && (() => {
+                const pin = PINS_BY_ID.get(hoveredPinId || selectedPinId)
+                if (!pin) return null
+                return (
+                  <ellipse
+                    cx={pin.cx}
+                    cy={pin.cy}
+                    rx={(pin.rx || 3.66) + 2.4}
+                    ry={(pin.ry || 3.59) + 2.4}
+                    transform={pin.transform || undefined}
+                    className="momo-pin-highlight"
+                    pointerEvents="none"
+                  />
+                )
+              })()}
+            </>
           )}
 
           {/* DOLL 4: Room Vector Names Layer */}
@@ -1235,7 +1265,7 @@ export default function MapCanvas({
             <span className="momo-zoom-stage-title">{currentStageInfo.label}</span>
             <span className="momo-zoom-stage-subtitle">
               {hoveredRoomId
-                ? `${hoveredPinId ? 'Porte · ' : ''}Local : ${roomOverrides?.[hoveredRoomId]?.label ?? hoveredRoomId}`
+                ? `${hoveredPinId ? `${pinOverrides?.[hoveredPinId]?.label ?? hoveredPinId} · ` : ''}Local : ${roomOverrides?.[hoveredRoomId]?.label ?? hoveredRoomId}`
                 : focusedRoomId
                   ? `Local sélectionné : ${roomOverrides?.[focusedRoomId]?.label ?? focusedRoomId}`
                   : currentStageInfo.detail}

@@ -181,3 +181,47 @@
   font-size: 11px;
   color: var(--color-text-muted, #64748b);
 }
+
+.dev-edit-card {
+  width: 210px;
+}
+
+.dev-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dev-edit-field__label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-body, #475569);
+}
+
+.dev-edit-color-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dev-edit-color-picker {
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-input, #e2e8f0);
+  background: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dev-edit-color-hex {
+  flex: 1;
+}
+
+.dev-edit-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 2px;
+}
