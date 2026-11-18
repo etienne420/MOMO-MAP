@@ -1,4 +1,5 @@
 const SESSION_TOKEN_KEY = 'momo-map.access-token'
+const DEV_MODE_KEY = 'momo-map.dev-mode'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim()
 
 function getTokenClaims(token) {
@@ -241,6 +242,33 @@ export function updateUserSettings(uid, settings) {
     method: "PATCH",
     body: { settings },
   })
+}
+
+export function getDevModeSetting() {
+  if (getSessionRole() !== 'admin') return false
+  try {
+    return window.localStorage.getItem(DEV_MODE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function setDevModeSetting(enabled) {
+  if (getSessionRole() !== 'admin') {
+    try {
+      window.localStorage.removeItem(DEV_MODE_KEY)
+    } catch {
+      // ignore storage errors
+    }
+    return false
+  }
+  const value = Boolean(enabled)
+  try {
+    window.localStorage.setItem(DEV_MODE_KEY, value ? 'true' : 'false')
+  } catch {
+    // ignore storage errors
+  }
+  return value
 }
 
 export function getCurrentUserId() {

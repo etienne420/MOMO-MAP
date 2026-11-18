@@ -571,6 +571,9 @@ async function updateSettings(req, res, next) {
         user.settings[key] = incoming[key];
       }
     }
+    if (typeof incoming.devMode === "boolean" && user.role === "admin") {
+      user.settings.devMode = incoming.devMode;
+    }
 
     await user.save();
     res.json({ user: getPublicUser(user) });

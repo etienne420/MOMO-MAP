@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { updateUserSettings, getCurrentUserId, fetchCurrentUser } from '../../services/auth'
+import {
+  updateUserSettings,
+  getCurrentUserId,
+  fetchCurrentUser,
+  getSessionRole,
+  getDevModeSetting,
+  setDevModeSetting,
+} from '../../services/auth'
 import './SettingsPage.css'
 
 const TOGGLES = [
@@ -11,11 +18,13 @@ const TOGGLES = [
 
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const [settings, setSettings] = useState({
+  const [isAdmin, setIsAdmin] = useState(() => getSessionRole() === 'admin')
+  const [settings, setSettings] = useState(() => ({
     turnByTurnGuidance: true,
     showSchoolInsights: true,
     reducedMotion: false,
-  })
+    devMode: getDevModeSetting(),
+  }))
   const [status, setStatus] = useState('')
 
   useEffect(() => {
@@ -25,7 +34,18 @@ export default function SettingsPage() {
     }
     fetchCurrentUser()
       .then((u) => {
-        if (u.settings) setSettings((prev) => ({ ...prev, ...u.settings }))
+        const adminRole = u.role === 'admin' || getSessionRole() === 'admin'
+        setIsAdmin(adminRole)
+        if (u.settings) {
+          const merged = {
+            ...u.settings,
+            devMode: adminRole ? Boolean(u.settings.devMode) : false,
+          }
+          if (adminRole && typeof u.settings.devMode === 'boolean') {
+            setDevModeSetting(u.settings.devMode)
+          }
+          setSettings((prev) => ({ ...prev, ...merged }))
+        }
       })
       .catch((e) => setStatus(e.message))
   }, [navigate])
@@ -38,14 +58,22 @@ export default function SettingsPage() {
     }
     const next = { ...settings, [key]: !settings[key] }
     setSettings(next)
+    if (key === 'devMode' && isAdmin) {
+      setDevModeSetting(next.devMode)
+    }
     setStatus('Enregistrement…')
     try {
-      await updateUserSettings(currentUid, next)
+      const payload = isAdmin ? next : { ...next, devMode: undefined }
+      await updateUserSettings(currentUid, payload)
       setStatus('Enregistré')
     } catch (e) {
       setStatus(e.message)
     }
   }
+
+  const visibleToggles = isAdmin
+    ? [...TOGGLES, { key: 'devMode', label: 'Mode développeur' }]
+    : TOGGLES
 
   return (
     <div className="settings-page">
@@ -56,7 +84,7 @@ export default function SettingsPage() {
 
       <section className="settings-section">
         <h2>Préférences</h2>
-        {TOGGLES.map(({ key, label }) => (
+        {visibleToggles.map(({ key, label }) => (
           <label key={key} className="settings-row">
             <span>{label}</span>
             <input
