@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import Theme from "../models/Theme.js";
+import Theme from "../models/theme.js";
 import { uploadBufferToCloudinary } from "../utils/cloudinary.js";
 
 // GET /api/themes

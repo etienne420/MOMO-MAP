@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import Avatar from "../models/Avatar.js";
+import Avatar from "../models/avatar.js";
 import { uploadBufferToCloudinary } from "../utils/cloudinary.js";
 
 // GET /api/avatars
