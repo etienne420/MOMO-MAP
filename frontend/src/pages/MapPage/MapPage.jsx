@@ -18,6 +18,7 @@ import {
   saveVectorOverrides,
 } from '../../utils/vectorOverrides'
 import useMediaQuery, { MOBILE_QUERY } from '../../hooks/useMediaQuery'
+import usePageZoomLock from '../../hooks/usePageZoomLock'
 import { applyUiTheme, getCachedTheme } from '../../utils/theme'
 import './MapPage.css'
 
@@ -38,6 +39,9 @@ export default function MapPage() {
   // Sur mobile : carte plein écran, itinéraire en haut, barre d'outils et commodités en bas
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const [isSheetOpen, setIsSheetOpen] = useState(true)
+
+  // La carte a son propre zoom : on empêche le navigateur de zoomer toute la page
+  usePageZoomLock()
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [viewportInsets, setViewportInsets] = useState({ top: 0, bottom: 0 })
   const mapControlsRef = useRef(null)

@@ -1232,8 +1232,18 @@ export default function MapCanvas({
       startCameraAnimation()
     }
 
+    // Les gestionnaires tactiles de React sont « passifs » et ne peuvent pas annuler le geste du
+    // navigateur : sans ceci, glisser ou pincer la carte faisait aussi défiler ou zoomer la page.
+    const preventBrowserTouch = (e) => {
+      if (e.cancelable) e.preventDefault()
+    }
+
     el.addEventListener('wheel', handleWheel, { passive: false })
-    return () => el.removeEventListener('wheel', handleWheel)
+    el.addEventListener('touchmove', preventBrowserTouch, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', handleWheel)
+      el.removeEventListener('touchmove', preventBrowserTouch)
+    }
   }, [clampPan, startCameraAnimation])
 
   // Floating Controls Zoom In/Out

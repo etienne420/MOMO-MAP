@@ -8,6 +8,11 @@
   user-select: none;
   background-color: #f1f3f4; /* Google Maps base canvas background */
   cursor: grab;
+  /* La carte gère elle-même le glissement et le pincement : le navigateur ne doit ni défiler ni zoomer */
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .map-canvas-container.is-dragging {
