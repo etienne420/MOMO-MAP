@@ -189,12 +189,14 @@
   stroke-width: 2px;
 }
 
+/* Départ : point bleu ; arrivée : épingle noire */
 .momo-route-marker--start {
-  fill: var(--color-primary, #1e6b37);
+  fill: #4f7fe0;
 }
 
 .momo-route-marker--end {
-  fill: var(--color-error, #ef4444);
+  fill: #111827;
+  stroke-width: 1.4px;
 }
 
 /* Highlight Polygon for Hovered / Selected Room */
