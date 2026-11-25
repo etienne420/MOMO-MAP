@@ -7,7 +7,7 @@
 }
 
 html, body {
-  min-height: 100vh;
+  min-height: 100%;
   font-family: var(--font-family-base);
   color: var(--color-text-body);
   background-color: var(--color-bg-page);
@@ -15,8 +15,14 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }

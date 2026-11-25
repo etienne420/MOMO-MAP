@@ -44,6 +44,15 @@ Ne stockez jamais les mots de passe en clair et ne les
 pré-hachez pas dans le client : un hachage client réutilisable pourrait servir de
 mot de passe de remplacement. L’API doit être servie en HTTPS en production.
 
+## Installation sur l'écran d'accueil
+
+Le frontend fournit un manifeste PWA et l'icône MOMO-MAP pour l'installation
+sur l'écran d'accueil. Une fois installé, il s'ouvre en mode application sans
+barre d'adresse ni commandes du navigateur. Sur Android, choisissez
+« Installer l'application » ou « Ajouter à l'écran d'accueil » dans le menu du
+navigateur. Sur iPhone/iPad, utilisez « Ajouter à l'écran d'accueil » dans le
+menu de partage de Safari. Le site doit être servi en HTTPS en production.
+
 ## React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
