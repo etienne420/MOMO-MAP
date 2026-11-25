@@ -194,13 +194,13 @@
   stroke-width: 2px;
 }
 
-/* Départ : point bleu ; arrivée : épingle noire */
+/* Départ : point bleu ; arrivée : épingle rouge */
 .momo-route-marker--start {
   fill: #4f7fe0;
 }
 
 .momo-route-marker--end {
-  fill: #111827;
+  fill: var(--color-error, #ef4444);
   stroke-width: 1.4px;
 }
 
