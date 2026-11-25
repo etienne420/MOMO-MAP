@@ -1,39 +1,35 @@
-// app.js
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
-// Importer le gestionnaire d'erreurs
 import errorHandler from "./handler/error-handler.js";
 import { connectDB } from "./utils/db.js";
-import usersRoutes from "./routes/users-routes.js"
+import usersRoutes from "./routes/users-routes.js";
+import avatarsRoutes from "./routes/avatars-routes.js";
 
 const PORT = process.env.PORT || 5000;
-
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Vérification de sécurité
 if (!MONGODB_URI) {
   console.error("ERREUR : MONGODB_URI n'est pas défini dans le fichier .env !");
   process.exit(1);
 }
 
-// Connexion à MongoDB
 await connectDB(MONGODB_URI);
 
 const app = express();
 
-// 1. Sécurité Helmet : Sécurise les en-têtes HTTP
+// 1. Sécurité Helmet
 app.use(helmet());
 
-// 2. Limitation de débit (Rate Limiting) : Empêche les abus / attaques par force brute
+// 2. Limitation de débit (Rate Limiting)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limite chaque IP à 100 requêtes par fenêtre de 15 minutes
-  standardHeaders: true, // Renvoie les infos de limite dans les en-têtes RateLimit-*
-  legacyHeaders: false, // Désactive les en-têtes X-RateLimit-*
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
     error:
       "Trop de requêtes provenant de cette IP, veuillez réessayer plus tard.",
@@ -41,11 +37,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// 3. Parsing JSON (multer gère le multipart/form-data sur /api/avatars)
 app.use(express.json());
 
-// 3. Configuration CORS sécurisée
+// 4. Configuration CORS
 const corsOptions = {
-  origin: "*", // Vous pouvez remplacer "*" par une URL spécifique (ex: "http://localhost:3000") en production
+  origin: process.env.CLIENT_URL || "*",
   methods: ["GET", "POST", "PATCH", "DELETE"],
   allowedHeaders: [
     "Origin",
@@ -65,20 +62,20 @@ app.get("/", (req, res) => {
   });
 });
 
-// 6. Routes des utilisateurs
+// 6. Routes API
 app.use("/api/users", usersRoutes);
+app.use("/api/avatars", avatarsRoutes);
 
-// Si aucune route n'est trouvée, on crée une erreur
+// 7. Route 404
 app.use((req, res, next) => {
   const error = new Error("Route non trouvée");
   error.code = 404;
   next(error);
 });
 
-// Intercepte toutes les erreurs envoyées avec next(error)
+// 8. Gestionnaire global d'erreurs
 app.use(errorHandler);
 
-// Démarrage du serveur
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
 });
