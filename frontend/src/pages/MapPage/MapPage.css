@@ -75,7 +75,7 @@
 }
 
 .map-page-sidebar__toggle:focus-visible {
-  outline: 3px solid rgba(30, 107, 55, 0.35);
+  outline: 3px solid color-mix(in srgb, var(--color-primary, #1e6b37) 35%, transparent);
   outline-offset: 2px;
 }
 
@@ -106,7 +106,7 @@
   letter-spacing: 0.04em;
   color: var(--color-primary, #1e6b37);
   font-family: var(--font-family-pacifico, 'Pacifico', cursive);
-  text-shadow: 0 2px 10px rgba(30, 107, 55, 0.12);
+  text-shadow: 0 2px 10px color-mix(in srgb, var(--color-primary, #1e6b37) 12%, transparent);
   user-select: none;
 }
 

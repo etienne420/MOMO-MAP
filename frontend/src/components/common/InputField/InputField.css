@@ -49,7 +49,7 @@
 .input-field__input:focus {
   background-color: #ffffff;
   border-color: var(--color-primary, #1e6b37);
-  box-shadow: 0 0 0 3px rgba(30, 107, 55, 0.14);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #1e6b37) 14%, transparent);
 }
 
 .input-field__input--has-right {

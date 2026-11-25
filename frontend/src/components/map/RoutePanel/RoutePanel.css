@@ -43,8 +43,8 @@
 }
 
 .route-card__input:focus {
-  border-color: #1e6b37;
-  box-shadow: 0 0 0 2px rgba(30, 107, 55, 0.12);
+  border-color: var(--color-primary, #1e6b37);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary, #1e6b37) 12%, transparent);
 }
 
 .route-card__swap-btn {

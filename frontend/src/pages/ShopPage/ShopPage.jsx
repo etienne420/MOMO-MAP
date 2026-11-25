@@ -7,6 +7,7 @@ import {
   getCurrentUserId,
   fetchCurrentUser,
 } from '../../services/auth'
+import { applyUiTheme, resolveTheme } from '../../utils/theme'
 import './ShopPage.css'
 
 export default function ShopPage() {
@@ -58,6 +59,10 @@ export default function ShopPage() {
     try {
       const { user: updated } = await equipItem(currentUid, kind, itemId)
       setUser(updated)
+      if (kind === 'theme') {
+        // equip renvoie seulement l'id du thème : on prend l'objet complet dans le catalogue
+        applyUiTheme(resolveTheme(updated?.themeActuel, catalog.themes))
+      }
     } catch (e) {
       setError(e.message)
     } finally {
