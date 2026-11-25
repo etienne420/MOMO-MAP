@@ -1262,23 +1262,34 @@ export default function MapCanvas({
     startCameraAnimation()
   }
 
-  // Current Russian-doll stage badge info
+  // Étape réelle du zoom (1 à 4), utilisée par la caméra
+  const stageStep = isRoomNamesGlobalZoom ? 4 : isRoomsVisible ? 3 : isZoomedMapVisible ? 2 : 1
+
+  // Étape affichée dans la pastille. Sans les noms des locaux (utilisateur standard),
+  // l'étape 4 « Locaux & Noms » n'existe pas : la pastille s'arrête à 3.
+  const stageCount = showRoomNames ? 4 : 3
   const currentStageInfo = useMemo(() => {
-    if (isRoomNamesGlobalZoom) {
+    if (isRoomNamesGlobalZoom && showRoomNames) {
       return { step: 4, label: 'Locaux & Noms', detail: 'Noms des locaux affichés' }
     }
     if (isRoomsVisible) {
-      return { step: 3, label: 'Intérieur du bâtiment', detail: 'Locaux visibles — zoomez sur un local pour son nom' }
+      return {
+        step: 3,
+        label: 'Intérieur du bâtiment',
+        detail: showRoomNames
+          ? 'Locaux visibles — zoomez sur un local pour son nom'
+          : 'Survolez ou touchez un local pour voir son nom',
+      }
     }
     if (isZoomedMapVisible) {
       return { step: 2, label: 'Plan du campus (Zoomé)', detail: 'Zoomez sur le bâtiment pour voir les locaux' }
     }
     return { step: 1, label: 'Vue générale (Dézoomée)', detail: 'Zoomez pour ouvrir le plan détaillé' }
-  }, [isZoomedMapVisible, isRoomsVisible, isRoomNamesGlobalZoom])
+  }, [isZoomedMapVisible, isRoomsVisible, isRoomNamesGlobalZoom, showRoomNames])
 
   useEffect(() => {
-    currentStageRef.current = currentStageInfo.step
-  }, [currentStageInfo.step])
+    currentStageRef.current = stageStep
+  }, [stageStep])
 
   const amenityFilterClass = activeAmenityId ? `amenity-filter-${activeAmenityId}` : ''
 
@@ -1296,7 +1307,7 @@ export default function MapCanvas({
       onTouchEnd={handleTouchEnd}
       role="application"
       aria-label="Carte interactive MOMO-MAIN"
-      data-zoom-stage={currentStageInfo.step}
+      data-zoom-stage={stageStep}
       data-relative-zoom={relativeZoom.toFixed(2)}
     >
       <svg
@@ -1378,7 +1389,7 @@ export default function MapCanvas({
       <div className="momo-zoom-stage-bar" aria-live="polite">
         <div className="momo-zoom-stage-pill">
           <div className="momo-zoom-stage-dots" aria-hidden="true">
-            {[1, 2, 3, 4].map((s) => (
+            {Array.from({ length: stageCount }, (_, i) => i + 1).map((s) => (
               <span
                 key={s}
                 className={`momo-zoom-stage-dot ${currentStageInfo.step >= s ? 'is-active' : ''}`}
@@ -1422,7 +1433,7 @@ export default function MapCanvas({
                 Voir les locaux
               </button>
             )}
-            {isRoomsVisible && !isRoomNamesGlobalZoom && (
+            {showRoomNames && isRoomsVisible && !isRoomNamesGlobalZoom && (
               <button
                 type="button"
                 className="momo-stage-jump-btn"
