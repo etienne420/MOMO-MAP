@@ -7,14 +7,23 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export function uploadBufferToCloudinary(buffer, folder = "avatars") {
+export function uploadBufferToCloudinary(
+  buffer,
+  folder = "avatars",
+  isSvg = false,
+) {
   return new Promise((resolve, reject) => {
+    const options = {
+      folder,
+      resource_type: "image",
+    };
+
+    if (!isSvg) {
+      options.format = "webp";
+    }
+
     const stream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        format: "webp",
-        resource_type: "image",
-      },
+      options,
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
