@@ -29,64 +29,6 @@
   display: none;
 }
 
-/* En-tête du panneau (logo + bouton replier/déplier sur mobile) */
-.map-page-sidebar__header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.map-page-sidebar__body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
-.map-page-sidebar__body[hidden] {
-  display: none;
-}
-
-/* Le bouton n'existe que sur mobile */
-.map-page-sidebar__toggle {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #18181b;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.map-page-sidebar__toggle:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.map-page-sidebar__toggle:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-primary, #1e6b37) 35%, transparent);
-  outline-offset: 2px;
-}
-
-.map-page-sidebar__toggle-icon {
-  transition: transform 0.2s ease;
-}
-
-.map-page-sidebar.is-open .map-page-sidebar__toggle-icon {
-  transform: rotate(180deg);
-}
-
 /* Auth Header logo styling in sidebar - NO BACKGROUND */
 .map-page-sidebar__logo.auth-header {
   margin-bottom: 0;
@@ -173,56 +115,128 @@
   color: #ffffff;
 }
 
-/* Mobile : la barre latérale devient un panneau rétractable en haut de l'écran */
-@media (max-width: 640px) {
-  .map-page-screen {
-    padding: 12px 12px 0;
-    align-items: flex-start;
-  }
+/* ==========================================================================
+   Mobile : carte plein écran, itinéraire en haut, barre d'outils + commodités en bas
+   ========================================================================== */
+.map-page-screen.is-mobile {
+  padding: 0;
+  display: block;
+}
 
-  .map-page-sidebar {
-    z-index: 25; /* au-dessus des contrôles de zoom quand il est déplié */
-    width: 100%;
-    max-width: 420px;
-    max-height: calc(100dvh - 24px);
-    gap: 12px;
-    padding: 8px 8px 8px 14px;
-    box-sizing: border-box;
-    border-radius: 20px;
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    background: rgba(255, 255, 255, 0.97);
-    box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.14), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
-  }
+.map-mobile-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 0;
+  pointer-events: none; /* la carte reste manipulable entre le logo et la carte d'itinéraire */
+}
 
-  .map-page-sidebar.is-open {
-    padding-bottom: 12px;
-  }
+.map-mobile-top > * {
+  pointer-events: auto;
+}
 
-  .map-page-sidebar__header {
-    justify-content: space-between;
-  }
+.map-mobile-logo {
+  align-self: flex-start;
+  height: 40px;
+  width: auto;
+  user-select: none;
+}
 
-  .map-page-sidebar__logo.auth-header {
-    width: auto;
-  }
+.map-mobile-logo--text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 4px;
+  color: #1c3f94;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
+}
 
-  .map-page-sidebar__logo .auth-header__title {
-    font-size: 24px;
-    text-align: left;
-  }
+.map-mobile-top .route-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 10px 10px 10px 12px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 10px 30px -6px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+}
 
-  .map-page-sidebar__toggle {
-    display: inline-flex;
-  }
+.map-mobile-top .route-card__input {
+  height: 44px;
+  font-size: 16px; /* 16px évite le zoom automatique de Safari iOS sur les champs */
+  border-radius: 14px;
+}
 
-  .map-page-sidebar__body {
-    gap: 12px;
-    padding-right: 6px;
-  }
+.map-mobile-top .route-card__swap-btn {
+  width: 40px;
+  height: 56px;
+}
 
-  /* Dans le panneau mobile, les cartes n'ont plus besoin de leur propre ombre */
-  .map-page-sidebar .route-card,
-  .map-page-sidebar .amenities-card {
-    box-shadow: none;
-  }
+.map-mobile-top .route-card__swap-icon {
+  width: 26px;
+  height: 36px;
+}
+
+.map-mobile-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.map-mobile-sheet {
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 26px 26px 0 0;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-bottom: none;
+  box-shadow: 0 -8px 28px -8px rgba(15, 23, 42, 0.14);
+  padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+
+.map-mobile-sheet.is-collapsed {
+  padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+}
+
+.map-mobile-sheet__handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-mobile-sheet__grabber {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d1d5db;
+}
+
+.map-mobile-sheet__handle:focus-visible .map-mobile-sheet__grabber {
+  background: var(--color-primary, #1e6b37);
+}
+
+.map-mobile-sheet__body[hidden] {
+  display: none;
 }

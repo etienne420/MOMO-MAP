@@ -1,4 +1,12 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useImperativeHandle,
+} from 'react'
 import mapFinalSvgRaw from '../../../assets/map/MAP-FINAL.svg?raw'
 import momoRoomsData from '../../../assets/map/momo-main-rooms.json'
 import { getMapThemeVars } from '../../../utils/theme'
@@ -226,7 +234,12 @@ const RouteLayer = React.memo(function RouteLayer({ route }) {
       <polyline points={pts} className="momo-route-casing" />
       <polyline points={pts} className="momo-route-line" />
       <circle cx={start.x} cy={start.y} r="6" className="momo-route-marker momo-route-marker--start" />
-      <circle cx={end.x} cy={end.y} r="6" className="momo-route-marker momo-route-marker--end" />
+      {/* Épingle d'arrivée : la pointe touche la porte du local de destination */}
+      <path
+        transform={`translate(${end.x}, ${end.y})`}
+        d="M0 0 C-1.6 -5.2 -7.5 -9.6 -7.5 -15.5 A7.5 7.5 0 1 1 7.5 -15.5 C7.5 -9.6 1.6 -5.2 0 0 Z"
+        className="momo-route-marker momo-route-marker--end"
+      />
     </g>
   )
 })
@@ -290,8 +303,19 @@ export default function MapCanvas({
   pinOverrides = null,
   route = null,
   reducedMotion = false,
+  // Mobile : masque la pastille d'étape et les boutons de zoom (remplacés par la barre d'outils)
+  hideOverlayControls = false,
+  // Zones de l'écran couvertes par l'interface (px) : la caméra centre la carte dans l'espace libre
+  viewportInsets = null,
+  // Commandes de la caméra pour la barre d'outils mobile : { recenter(), advanceStage() }
+  controlRef = null,
 }) {
   const containerRef = useRef(null)
+  const insetsRef = useRef({ top: 0, bottom: 0 })
+  insetsRef.current = {
+    top: viewportInsets?.top || 0,
+    bottom: viewportInsets?.bottom || 0,
+  }
   const cameraSvgRef = useRef(null)
   const movingTimeoutRef = useRef(null)
   const buildingRoomsWrapperRef = useRef(null)
@@ -828,8 +852,9 @@ export default function MapCanvas({
       if (!el) return
       const rect = el.getBoundingClientRect()
       const sidebarOffset = rect.width > 768 ? 260 : 0
+      const { top, bottom } = insetsRef.current
       const targetScreenX = sidebarOffset + (rect.width - sidebarOffset) / 2
-      const targetScreenY = rect.height / 2
+      const targetScreenY = top + Math.max(rect.height - top - bottom, 0) / 2
 
       const clampedZoom = Math.min(
         Math.max(minZoomRef.current * targetRelZoom, minZoomRef.current),
@@ -883,15 +908,17 @@ export default function MapCanvas({
     if (!el || !minZ) return
     const rect = el.getBoundingClientRect()
     const sidebarOffset = rect.width > 768 ? 260 : 0
-    const pad = 80
+    const { top, bottom } = insetsRef.current
+    const pad = rect.width > 640 ? 80 : 32
     const availW = Math.max(rect.width - sidebarOffset - pad * 2, 120)
-    const availH = Math.max(rect.height - pad * 2 - 60, 120) // 60 = pastille d'étape en bas
+    const reservedBottom = hideOverlayControls ? 0 : 60 // 60 = pastille d'étape en bas
+    const availH = Math.max(rect.height - top - bottom - pad * 2 - reservedBottom, 120)
     const { minX, minY, maxX, maxY } = route.bounds
     const fitZoom = Math.min(availW / Math.max(maxX - minX, 1), availH / Math.max(maxY - minY, 1))
     const insetCoverZ = Math.max(rect.width / SAFE_INSET.width, rect.height / SAFE_INSET.height)
     const relZoom = Math.min(Math.max(fitZoom, insetCoverZ * 1.02) / minZ, 8)
     zoomToWorldPoint((minX + maxX) / 2, (minY + maxY) / 2, relZoom)
-  }, [route, zoomToWorldPoint])
+  }, [route, zoomToWorldPoint, hideOverlayControls])
 
   // Pendant un glissement, les étiquettes sont recalculées à intervalle régulier. Chaque mise à jour
   // force le navigateur à redessiner la carte : on espace ces mises à jour en mode économie.
@@ -1291,6 +1318,30 @@ export default function MapCanvas({
     currentStageRef.current = stageStep
   }, [stageStep])
 
+  // Passe à l'étape suivante (vue générale -> campus -> locaux -> noms), puis revient au début
+  const advanceStage = () => {
+    if (!isZoomedMapVisible) {
+      zoomToWorldPoint(SAFE_INSET.cx, SAFE_INSET.cy, insetCoverRelZoom * 1.05)
+    } else if (!isRoomsVisible) {
+      zoomToWorldPoint(BUILDING_BOUNDS.cx, BUILDING_BOUNDS.cy, roomsVisibleThreshold * 1.08)
+    } else if (showRoomNames && !isRoomNamesGlobalZoom) {
+      zoomToWorldPoint(BUILDING_BOUNDS.cx, BUILDING_BOUNDS.cy, roomNamesThreshold * 1.15)
+    } else {
+      handleReset()
+    }
+  }
+
+  const latestControlsRef = useRef({})
+  latestControlsRef.current = { recenter: handleReset, advanceStage }
+  useImperativeHandle(
+    controlRef,
+    () => ({
+      recenter: () => latestControlsRef.current.recenter(),
+      advanceStage: () => latestControlsRef.current.advanceStage(),
+    }),
+    [],
+  )
+
   const amenityFilterClass = activeAmenityId ? `amenity-filter-${activeAmenityId}` : ''
 
   return (
@@ -1386,6 +1437,7 @@ export default function MapCanvas({
       </svg>
 
       {/* Russian-Doll Zoom Stage Indicator Pill (Bottom Center) */}
+      {!hideOverlayControls && (
       <div className="momo-zoom-stage-bar" aria-live="polite">
         <div className="momo-zoom-stage-pill">
           <div className="momo-zoom-stage-dots" aria-hidden="true">
@@ -1448,7 +1500,10 @@ export default function MapCanvas({
         </div>
       </div>
 
+      )}
+
       {/* Floating Google Maps Zoom & Reset Controls - Centered Vertically */}
+      {!hideOverlayControls && (
       <div className="google-maps-controls-right">
         {/* Recenter button */}
         <button
@@ -1494,6 +1549,7 @@ export default function MapCanvas({
           </button>
         </div>
       </div>
+      )}
     </div>
   )
 }

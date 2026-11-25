@@ -75,9 +75,18 @@ const AMENITIES = [
   },
 ]
 
-export default function AmenitiesPanel({ activeAmenityId = null, onSelectAmenity = null }) {
+// layout : 'list' (une colonne, barre latérale) ou 'grid' (deux colonnes, panneau du bas sur mobile)
+export default function AmenitiesPanel({
+  activeAmenityId = null,
+  onSelectAmenity = null,
+  layout = 'list',
+}) {
   return (
-    <div className="amenities-card" role="region" aria-label="Commodités">
+    <div
+      className={`amenities-card ${layout === 'grid' ? 'amenities-card--grid' : ''}`}
+      role="region"
+      aria-label="Commodités"
+    >
       <div className="amenities-card__list">
         {AMENITIES.map((amenity) => {
           const isActive = activeAmenityId === amenity.id

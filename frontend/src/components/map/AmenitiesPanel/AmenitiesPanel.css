@@ -78,3 +78,34 @@
   letter-spacing: -0.01em;
   user-select: none;
 }
+
+/* Disposition en grille (deux colonnes) pour le panneau du bas sur mobile */
+.amenities-card--grid {
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.amenities-card--grid .amenities-card__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.amenities-card--grid .amenity-row {
+  height: 48px;
+  gap: 10px;
+}
+
+.amenities-card--grid .amenity-row:hover {
+  transform: none;
+}
+
+.amenities-card--grid .amenity-row__label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
