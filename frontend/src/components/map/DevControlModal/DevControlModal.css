@@ -18,7 +18,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--color-surface-float, rgba(255, 255, 255, 0.96));
   border: 1px solid var(--color-border-input, #e2e8f0);
   border-radius: 14px;
   padding: 10px;
@@ -43,7 +43,7 @@
 
 .dev-modal-card__close {
   border: 1px solid var(--color-border-input, #e2e8f0);
-  background: #ffffff;
+  background: var(--color-surface, #ffffff);
   color: var(--color-text-body, #475569);
   border-radius: 6px;
   width: 20px;
@@ -58,7 +58,7 @@
 }
 
 .dev-modal-card__close:hover {
-  background: #f8fafc;
+  background: var(--color-surface-hover, #f8fafc);
 }
 
 .dev-modal-search {
@@ -77,7 +77,7 @@
 
 .dev-modal-search:focus {
   border-color: var(--color-border-focus, #1e6b37);
-  background: #ffffff;
+  background: var(--color-surface, #ffffff);
 }
 
 .dev-modal-filters {
@@ -88,7 +88,7 @@
 
 .dev-modal-filter-btn {
   border: 1px solid var(--color-border-input, #e2e8f0);
-  background: #ffffff;
+  background: var(--color-surface, #ffffff);
   color: var(--color-text-body, #475569);
   border-radius: 6px;
   padding: 2px 6px;
@@ -99,21 +99,21 @@
 }
 
 .dev-modal-filter-btn:hover {
-  background: #f8fafc;
+  background: var(--color-surface-hover, #f8fafc);
 }
 
 .dev-modal-filter-btn.is-active {
   background: var(--color-primary, #1e6b37);
   border-color: var(--color-primary, #1e6b37);
-  color: #ffffff;
+  color: var(--color-on-primary, #ffffff);
 }
 
 .dev-modal-lazy-list {
   width: 100%;
   overflow-y: auto;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--color-divider, #f1f5f9);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-surface, #ffffff);
 }
 
 .dev-modal-lazy-spacer {
@@ -136,7 +136,7 @@
   padding: 0 7px;
   box-sizing: border-box;
   border: none;
-  border-bottom: 1px solid #f8fafc;
+  border-bottom: 1px solid var(--color-divider, #f8fafc);
   background: transparent;
   font-family: inherit;
   font-size: 11px;
@@ -146,7 +146,7 @@
 }
 
 .dev-modal-row:hover {
-  background: #f8fafc;
+  background: var(--color-surface-hover, #f8fafc);
 }
 
 .dev-modal-row.is-selected {
@@ -210,7 +210,7 @@
   padding: 2px;
   border-radius: 8px;
   border: 1px solid var(--color-border-input, #e2e8f0);
-  background: #ffffff;
+  background: var(--color-surface, #ffffff);
   cursor: pointer;
   flex-shrink: 0;
 }

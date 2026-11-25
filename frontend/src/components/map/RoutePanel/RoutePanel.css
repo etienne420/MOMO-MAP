@@ -1,8 +1,8 @@
 .route-card {
   width: 248px;
-  background-color: #ffffff;
+  background-color: var(--color-surface, #ffffff);
   border-radius: 24px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid var(--color-border-card, rgba(226, 232, 240, 0.8));
   padding: 16px 14px 16px 16px;
   display: flex;
   align-items: center;
@@ -25,19 +25,19 @@
   height: 40px;
   padding: 0 14px;
   box-sizing: border-box;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-soft, #e5e7eb);
   border-radius: 12px;
   font-family: inherit;
   font-size: 14px;
   font-weight: 400;
-  color: #18181b;
+  color: var(--color-text-title, #18181b);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .route-card__input::placeholder {
-  color: #18181b;
+  color: var(--color-text-title, #18181b);
   opacity: 1;
   font-weight: 400;
 }
@@ -56,7 +56,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   padding: 0;
   border-radius: 8px;
   transition: color 0.15s ease, transform 0.15s ease;
@@ -64,7 +64,7 @@
 }
 
 .route-card__swap-btn:hover {
-  color: #18181b;
+  color: var(--color-text-title, #18181b);
   transform: scale(1.06);
 }
 
@@ -102,12 +102,12 @@
   padding: 0;
   font-family: inherit;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   text-decoration: underline;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .route-card__clear-btn:hover {
-  color: #18181b;
+  color: var(--color-text-title, #18181b);
 }

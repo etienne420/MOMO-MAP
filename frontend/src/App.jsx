@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { getAuthToken } from './services/auth'
+import { applyUiTheme } from './utils/theme'
 import LoginPage from './pages/LoginPage/LoginPage'
 import SignUpPage from './pages/SignUpPage/SignUpPage'
 import MapPage from './pages/MapPage/MapPage'
@@ -37,7 +38,11 @@ function RequireAuth({ children }) {
   const navigate = useNavigate()
   const authed = !!getAuthToken()
   useEffect(() => {
-    if (!authed) navigate('/login', { replace: true })
+    if (!authed) {
+      // Retire un éventuel thème sombre/coloré avant d'afficher la page de connexion
+      applyUiTheme(null)
+      navigate('/login', { replace: true })
+    }
   }, [authed, navigate])
   return authed ? children : null
 }

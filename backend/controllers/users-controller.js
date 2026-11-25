@@ -9,6 +9,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INSTITUTIONAL_DOMAIN = "cmontmorency.qc.ca";
 const BCRYPT_ROUNDS = 12;
 
+// Jetons offerts : à l'inscription puis à chaque connexion (accumulables en se reconnectant).
+const REGISTER_BONUS_TOKENS = 10;
+const LOGIN_BONUS_TOKENS = 10;
+
 // ==========================================
 // FONCTIONS UTILITAIRES
 // ==========================================
@@ -197,13 +201,13 @@ async function register(req, res, next) {
     // Hacher le mot de passe avec bcrypt
     const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    // Créer l'utilisateur avec 1 token initial
+    // Créer l'utilisateur avec un bonus de bienvenue
     const user = await User.create({
       username: normalizedUsername,
       email: normalizedEmail,
       password: hashedPassword,
       role: "user",
-      tokens: 1,
+      tokens: REGISTER_BONUS_TOKENS,
     });
 
     const accessToken = createAccessToken(user, jwtSecret);
@@ -270,58 +274,21 @@ async function login(req, res, next) {
       });
     }
 
-    const accessToken = createAccessToken(user, jwtSecret);
+    // Chaque connexion rapporte des jetons (accumulables en se reconnectant).
+    const updatedUser =
+      (await User.findByIdAndUpdate(
+        user._id,
+        { $inc: { tokens: LOGIN_BONUS_TOKENS } },
+        { new: true },
+      )) || user;
+
+    const accessToken = createAccessToken(updatedUser, jwtSecret);
 
     return res.json({
       accessToken,
       token: accessToken,
-      user: getPublicUser(user),
+      user: getPublicUser(updatedUser),
     });
-  } catch (error) {
-    next(error);
-  }
-}
-
-// ==========================================
-// BONUS QUOTIDIEN
-// ==========================================
-
-const DAILY_BONUS_TOKENS = 1;
-
-async function claimDailyBonus(req, res, next) {
-  try {
-    const now = new Date();
-    const startOfDay = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
-
-    // Atomique : n'accorde le bonus que si le dernier bonus date d'avant aujourd'hui.
-    const user = await User.findOneAndUpdate(
-      {
-        _id: req.params.uid,
-        $or: [
-          { lastDailyBonusAt: null },
-          { lastDailyBonusAt: { $lt: startOfDay } },
-        ],
-      },
-      {
-        $inc: { tokens: DAILY_BONUS_TOKENS },
-        $set: { lastDailyBonusAt: now },
-      },
-      { new: true },
-    );
-
-    if (!user) {
-      const existing = await User.findById(req.params.uid);
-      if (!existing) {
-        return res.status(404).json({ message: "Utilisateur introuvable." });
-      }
-      return res.status(409).json({
-        message: "Bonus quotidien déjà réclamé aujourd'hui.",
-      });
-    }
-
-    res.json({ user: getPublicUser(user) });
   } catch (error) {
     next(error);
   }
@@ -597,7 +564,6 @@ const usersController = {
   purchaseItem,
   equipItem,
   updateSettings,
-  claimDailyBonus,
 };
 
 export default usersController;

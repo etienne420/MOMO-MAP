@@ -29,7 +29,7 @@
 
 .local-search__control:focus-within {
   border-color: var(--color-border-focus, #1e6b37);
-  background-color: #fff;
+  background-color: var(--color-surface, #fff);
   box-shadow: var(--shadow-input-focus, 0 0 0 3px color-mix(in srgb, var(--color-primary, #1e6b37) 15%, transparent));
 }
 

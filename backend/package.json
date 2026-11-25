@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "seed:shop": "node scripts/seed-shop.mjs"
   },
   "keywords": [],
   "author": "",
