@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import mapFinalSvgRaw from '../../../assets/map/MAP-FINAL.svg?raw'
 import momoRoomsData from '../../../assets/map/momo-main-rooms.json'
+import { getMapThemeVars } from '../../../utils/theme'
 import './MapCanvas.css'
 
 const MAP_WIDTH = momoRoomsData.viewBox.width // 5483
@@ -288,14 +289,18 @@ export default function MapCanvas({
   roomOverrides = null,
   pinOverrides = null,
   route = null,
+  reducedMotion = false,
 }) {
   const containerRef = useRef(null)
   const cameraSvgRef = useRef(null)
   const movingTimeoutRef = useRef(null)
   const buildingRoomsWrapperRef = useRef(null)
 
-  const bgColor = theme?.backgroundColor || '#ffffff'
-  const animate = theme?.animate && !theme?.reducedMotion
+  // Couleurs du thème -> variables CSS lues par MapCanvas.css (sol, blocs, rues, espaces verts)
+  const themeVars = useMemo(() => getMapThemeVars(theme), [theme])
+  const hasTheme = Object.keys(themeVars).length > 0
+  const bgColor = themeVars['--map-ground'] || '#ffffff'
+  const animate = Boolean(theme?.animate) && !reducedMotion
 
   // Min zoom is computed dynamically so the 5483x4446 SVG covers the entire viewport (cannot unzoom out of the SVG)
   const [minZoom, setMinZoom] = useState(0.35)
@@ -1280,8 +1285,8 @@ export default function MapCanvas({
   return (
     <div
       ref={containerRef}
-      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''} ${animate ? 'is-animated' : ''} ${isLowPower ? 'is-low-power' : ''}`}
-      style={{ backgroundColor: bgColor }}
+      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''} ${animate ? 'is-animated' : ''} ${isLowPower ? 'is-low-power' : ''} ${hasTheme ? 'has-theme' : ''}`}
+      style={{ backgroundColor: bgColor, ...themeVars }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

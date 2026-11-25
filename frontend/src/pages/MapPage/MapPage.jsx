@@ -17,6 +17,7 @@ import {
   saveVectorOverrides,
 } from '../../utils/vectorOverrides'
 import useMediaQuery, { MOBILE_QUERY } from '../../hooks/useMediaQuery'
+import { applyUiTheme, getCachedTheme } from '../../utils/theme'
 import './MapPage.css'
 
 export default function MapPage() {
@@ -24,7 +25,8 @@ export default function MapPage() {
   const [selectedRoomId, setSelectedRoomId] = useState(null)
   const [selectedPinId, setSelectedPinId] = useState(null)
   const [route, setRoute] = useState(null)
-  const [theme, setTheme] = useState(null)
+  const [theme, setTheme] = useState(() => getCachedTheme())
+  const [reducedMotion, setReducedMotion] = useState(false)
   const [isDevMode, setIsDevMode] = useState(
     () => getSessionRole() === 'admin' && getDevModeSetting(),
   )
@@ -63,7 +65,11 @@ export default function MapPage() {
     const load = () => {
       fetchCurrentUser()
         .then((u) => {
-          setTheme(u.themeActuel || null)
+          // themeActuel est peuplé par GET /api/users/:uid (objet Theme complet)
+          const nextTheme = u.themeActuel && typeof u.themeActuel === 'object' ? u.themeActuel : null
+          setTheme(nextTheme)
+          applyUiTheme(nextTheme)
+          setReducedMotion(Boolean(u.settings?.reducedMotion))
           const adminRole = u.role === 'admin' || getSessionRole() === 'admin'
           if (adminRole) {
             const devEnabled =
@@ -77,7 +83,9 @@ export default function MapPage() {
             setIsDevModalOpen(false)
           }
         })
-        .catch(() => setTheme(null))
+        .catch(() => {
+          // Serveur injoignable : on garde le thème déjà affiché pour la session
+        })
     }
 
     load()
@@ -129,6 +137,7 @@ export default function MapPage() {
       {/* Full viewport interactive Google Maps Grid canvas */}
       <MapCanvas
         theme={theme}
+        reducedMotion={reducedMotion}
         activeAmenityId={activeAmenityId}
         selectedRoomId={selectedRoomId}
         selectedPinId={selectedPinId}
