@@ -205,6 +205,81 @@ html.is-zoom-locked body {
   pointer-events: none;
 }
 
+/* Nom du local sélectionné, au-dessus de la barre d'outils */
+.map-mobile-selected {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 28px);
+  padding: 6px 6px 6px 14px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 6px 18px -4px rgba(15, 23, 42, 0.18), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+  pointer-events: auto;
+  animation: map-mobile-selected-in 0.18s ease-out;
+}
+
+@keyframes map-mobile-selected-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.map-mobile-selected__pin {
+  flex-shrink: 0;
+  fill: var(--color-error, #ef4444);
+}
+
+.map-mobile-selected__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.map-mobile-selected__caption {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.map-mobile-selected__name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-mobile-selected__close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #374151;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-mobile-selected {
+    animation: none;
+  }
+}
+
 .map-mobile-sheet {
   pointer-events: auto;
   background: rgba(255, 255, 255, 0.98);

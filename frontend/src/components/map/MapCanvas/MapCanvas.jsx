@@ -879,7 +879,15 @@ export default function MapCanvas({
   // If parent selects a room (e.g., via search or dev panel), smoothly zoom to that room
   const prevSelectedRoomRef = useRef(null)
   useEffect(() => {
-    if (!selectedRoomId || selectedRoomId === prevSelectedRoomRef.current) return
+    // Désélection par le parent (ex. bouton × sur mobile) : on retire aussi la surbrillance
+    if (!selectedRoomId) {
+      if (prevSelectedRoomRef.current) {
+        prevSelectedRoomRef.current = null
+        setFocusedRoomId(null)
+      }
+      return
+    }
+    if (selectedRoomId === prevSelectedRoomRef.current) return
     prevSelectedRoomRef.current = selectedRoomId
     const room = getRoomById(selectedRoomId)
     if (room) {

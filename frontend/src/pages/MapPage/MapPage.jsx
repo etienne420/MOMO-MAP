@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthHeader from '../../components/auth/AuthHeader/AuthHeader'
 import RoutePanel from '../../components/map/RoutePanel/RoutePanel'
@@ -19,6 +19,7 @@ import {
 } from '../../utils/vectorOverrides'
 import useMediaQuery, { MOBILE_QUERY } from '../../hooks/useMediaQuery'
 import usePageZoomLock from '../../hooks/usePageZoomLock'
+import { resolveRoom } from '../../utils/routing'
 import { applyUiTheme, getCachedTheme } from '../../utils/theme'
 import './MapPage.css'
 
@@ -166,6 +167,14 @@ export default function MapPage() {
     }
   }, [])
 
+  // Nom du local sélectionné (affiché sur mobile, où la pastille d'étape est masquée)
+  const selectedRoomName = useMemo(() => {
+    if (!selectedRoomId) return null
+    const room = resolveRoom(selectedRoomId)
+    if (!room) return null
+    return vectorOverrides.roomOverrides?.[room.id]?.label ?? room.label ?? room.id
+  }, [selectedRoomId, vectorOverrides.roomOverrides])
+
   const devToggle = isDevMode && (
     <button
       type="button"
@@ -221,6 +230,31 @@ export default function MapPage() {
 
           {/* Bas : barre d'outils + panneau des commodités */}
           <div ref={mobileBottomRef} className="map-mobile-bottom">
+            {selectedRoomName && (
+              <div className="map-mobile-selected" role="status" aria-live="polite">
+                <svg className="map-mobile-selected__pin" width="14" height="18" viewBox="-8 -24 16 24" aria-hidden="true">
+                  <path d="M0 0 C-1.6 -5.2 -7.5 -9.6 -7.5 -15.5 A7.5 7.5 0 1 1 7.5 -15.5 C7.5 -9.6 1.6 -5.2 0 0 Z" />
+                  <circle cx="0" cy="-15.5" r="2.8" fill="#ffffff" />
+                </svg>
+                <span className="map-mobile-selected__text">
+                  <span className="map-mobile-selected__caption">Local sélectionné</span>
+                  <span className="map-mobile-selected__name">{selectedRoomName}</span>
+                </span>
+                <button
+                  type="button"
+                  className="map-mobile-selected__close"
+                  onClick={() => {
+                    setSelectedRoomId(null)
+                    setSelectedPinId(null)
+                  }}
+                  aria-label="Désélectionner le local"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+            )}
             <MobileToolbar
               onChangeView={() => mapControlsRef.current?.advanceStage()}
               onRecenter={() => mapControlsRef.current?.recenter()}
