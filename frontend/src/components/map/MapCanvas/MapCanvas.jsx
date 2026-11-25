@@ -114,6 +114,37 @@ const {
 
 const MAX_RELATIVE_ZOOM = 12
 
+// --- Mode « économie » pour les ordinateurs moins puissants --------------------------
+// Activé d'emblée si le matériel annonce peu de ressources, ou en cours de route si le zoom
+// tourne sous ~35 images/s. Mémorisé pour la session pour ne pas repartir en mode normal.
+const LOW_POWER_KEY = 'momo-map.low-power'
+const LOW_POWER_FRAME_MS = 28 // durée médiane d'une image au-delà de laquelle on passe en mode économie
+const LOW_POWER_MIN_SAMPLES = 12
+
+function detectLowPowerHardware() {
+  try {
+    if (window.sessionStorage.getItem(LOW_POWER_KEY) === 'true') return true
+  } catch {
+    // stockage indisponible : on se fie au matériel
+  }
+  const cores = navigator.hardwareConcurrency || 8
+  const memory = navigator.deviceMemory || 8
+  return cores <= 2 || memory <= 2
+}
+
+function rememberLowPower() {
+  try {
+    window.sessionStorage.setItem(LOW_POWER_KEY, 'true')
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.floor(sorted.length / 2)]
+}
+
 // Memoized subcomponents for static SVG layers so React avoids reconciling 1,500+ path nodes
 const SvgDefs = React.memo(function SvgDefs() {
   return <g dangerouslySetInnerHTML={{ __html: MAIN_DEFS_MARKUP }} />
@@ -275,6 +306,9 @@ export default function MapCanvas({
   const [hoveredPinId, setHoveredPinId] = useState(null)
   const [focusedRoomId, setFocusedRoomId] = useState(null)
   const [viewportSize, setViewportSize] = useState({ width: 1280, height: 800 })
+  const [isLowPower, setIsLowPower] = useState(() => detectLowPowerHardware())
+  const isLowPowerRef = useRef(isLowPower)
+  const frameSamplesRef = useRef([])
 
   const hoveredRoomIdRef = useRef(null)
   const hoveredPinIdRef = useRef(null)
@@ -489,8 +523,21 @@ export default function MapCanvas({
     if (rafIdRef.current !== null) return
 
     const step = (now) => {
-      const dt = lastFrameTimeRef.current ? Math.min((now - lastFrameTimeRef.current) / 1000, 0.05) : 1 / 60
+      const rawDtMs = lastFrameTimeRef.current ? now - lastFrameTimeRef.current : 0
+      const dt = rawDtMs ? Math.min(rawDtMs / 1000, 0.05) : 1 / 60
       lastFrameTimeRef.current = now
+
+      // Mesure de la fluidité réelle (on ignore les gros trous : onglet en arrière-plan, etc.)
+      if (!isLowPowerRef.current && rawDtMs > 0 && rawDtMs < 250 && !document.hidden) {
+        const samples = frameSamplesRef.current
+        samples.push(rawDtMs)
+        if (samples.length > 40) samples.shift()
+        if (samples.length >= LOW_POWER_MIN_SAMPLES && median(samples) > LOW_POWER_FRAME_MS) {
+          isLowPowerRef.current = true
+          rememberLowPower()
+          setIsLowPower(true)
+        }
+      }
 
       // Frame-rate independent exponential damping (~0.18 per frame at 60fps)
       const alpha = 1 - Math.exp(-12 * dt)
@@ -716,15 +763,18 @@ export default function MapCanvas({
       const isNearViewportCenter =
         distFromCenterPx < Math.min(viewportSize.width, viewportSize.height) * 0.38
 
+      // En mode économie, on n'affiche que les étiquettes des locaux un peu plus grands à l'écran
+      const k = isLowPower ? 1.35 : 1
+
       // When zoomed in enough on a specific room (or past ROOM_NAMES_THRESHOLD):
       if (isRoomNamesGlobalZoom) {
         if (relativeZoom >= 5.5) {
-          return screenWidthPx >= 22 && screenHeightPx >= 12
+          return screenWidthPx >= 22 * k && screenHeightPx >= 12 * k
         }
-        if (isNearViewportCenter && screenWidthPx >= 28 && screenHeightPx >= 15) {
+        if (isNearViewportCenter && screenWidthPx >= 28 * k && screenHeightPx >= 15 * k) {
           return true
         }
-        return screenWidthPx >= 42 && screenHeightPx >= 22
+        return screenWidthPx >= 42 * k && screenHeightPx >= 22 * k
       }
 
       // Between ROOMS_VISIBLE_THRESHOLD and ROOM_NAMES_THRESHOLD:
@@ -747,6 +797,7 @@ export default function MapCanvas({
     hoveredRoomId,
     focusedRoomId,
     selectedRoomId,
+    isLowPower,
   ])
 
   // Active rooms for highlight polygon overlay
@@ -837,6 +888,10 @@ export default function MapCanvas({
     zoomToWorldPoint((minX + maxX) / 2, (minY + maxY) / 2, relZoom)
   }, [route, zoomToWorldPoint])
 
+  // Pendant un glissement, les étiquettes sont recalculées à intervalle régulier. Chaque mise à jour
+  // force le navigateur à redessiner la carte : on espace ces mises à jour en mode économie.
+  const dragSyncIntervalMs = useCallback(() => (isLowPowerRef.current ? 450 : 120), [])
+
   // Mouse Drag Handlers with direct DOM transform updates
   const handleMouseDown = (e) => {
     if (e.button !== 0) return // Only primary click
@@ -866,13 +921,13 @@ export default function MapCanvas({
 
       if (isRoomsVisibleRef.current) {
         const now = performance.now()
-        if (now - lastThrottledSyncRef.current > 120) {
+        if (now - lastThrottledSyncRef.current > dragSyncIntervalMs()) {
           lastThrottledSyncRef.current = now
           setPan(clamped)
         }
       }
     },
-    [clampPan, applyCameraTransform, setMoving]
+    [clampPan, applyCameraTransform, setMoving, dragSyncIntervalMs]
   )
 
   const handleMouseUp = useCallback(() => {
@@ -1011,7 +1066,7 @@ export default function MapCanvas({
 
       if (isRoomsVisibleRef.current) {
         const now = performance.now()
-        if (now - lastThrottledSyncRef.current > 120) {
+        if (now - lastThrottledSyncRef.current > dragSyncIntervalMs()) {
           lastThrottledSyncRef.current = now
           setPan(clamped)
         }
@@ -1225,7 +1280,7 @@ export default function MapCanvas({
   return (
     <div
       ref={containerRef}
-      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''} ${animate ? 'is-animated' : ''}`}
+      className={`map-canvas-container ${isDragging ? 'is-dragging' : ''} ${animate ? 'is-animated' : ''} ${isLowPower ? 'is-low-power' : ''}`}
       style={{ backgroundColor: bgColor }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
