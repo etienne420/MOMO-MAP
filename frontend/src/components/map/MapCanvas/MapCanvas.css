@@ -415,20 +415,80 @@
   background-color: #e8eaed;
 }
 
+/* Écrans tactiles : cibles d'au moins 44px */
+@media (pointer: coarse) {
+  .google-maps-ctrl-btn,
+  .google-maps-ctrl-btn-single {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Petits écrans : contrôles en bas à droite (à portée du pouce), pastille compacte sur une ligne */
 @media (max-width: 640px) {
   .google-maps-controls-right {
-    right: 16px;
+    top: auto;
+    transform: none;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    gap: 8px;
   }
 
   .momo-zoom-stage-bar {
-    bottom: 14px;
-    width: calc(100% - 32px);
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    width: calc(100% - 24px);
     display: flex;
     justify-content: center;
   }
 
   .momo-zoom-stage-pill {
-    max-width: 100%;
-    padding: 6px 12px;
+    width: 100%;
+    max-width: 420px;
+    box-sizing: border-box;
+    gap: 10px;
+    padding: 6px 6px 6px 12px;
+  }
+
+  .momo-zoom-stage-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .momo-zoom-stage-title,
+  .momo-zoom-stage-subtitle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .momo-zoom-stage-dots {
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .momo-zoom-stage-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .momo-zoom-quick-actions {
+    flex-shrink: 0;
+  }
+
+  .momo-stage-jump-btn {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+}
+
+/* Très petits écrans (iPhone SE, etc.) */
+@media (max-width: 360px) {
+  .momo-zoom-stage-subtitle {
+    display: none;
+  }
+
+  .momo-stage-jump-btn {
+    padding: 0 10px;
+    font-size: 10.5px;
   }
 }

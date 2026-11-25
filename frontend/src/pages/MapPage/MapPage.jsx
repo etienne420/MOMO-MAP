@@ -16,6 +16,7 @@ import {
   loadVectorOverrides,
   saveVectorOverrides,
 } from '../../utils/vectorOverrides'
+import useMediaQuery, { MOBILE_QUERY } from '../../hooks/useMediaQuery'
 import './MapPage.css'
 
 export default function MapPage() {
@@ -30,6 +31,31 @@ export default function MapPage() {
   const [isDevModalOpen, setIsDevModalOpen] = useState(false)
   const [vectorOverrides, setVectorOverrides] = useState(() => loadVectorOverrides())
   const navigate = useNavigate()
+
+  // Sur mobile, la barre latérale devient un panneau rétractable (fermé par défaut)
+  const isMobile = useMediaQuery(MOBILE_QUERY)
+  const [isPanelOpen, setIsPanelOpen] = useState(() => !isMobile)
+
+  useEffect(() => {
+    setIsPanelOpen(!isMobile)
+  }, [isMobile])
+
+  // Sur mobile, on referme le panneau quand un trajet est trouvé pour laisser voir la carte
+  const handleRouteChange = useCallback(
+    (nextRoute) => {
+      setRoute(nextRoute)
+      if (nextRoute && isMobile) setIsPanelOpen(false)
+    },
+    [isMobile],
+  )
+
+  const handleSelectRoomFromPanel = useCallback(
+    (roomId) => {
+      setSelectedRoomId(roomId)
+      if (isMobile) setIsPanelOpen(false)
+    },
+    [isMobile],
+  )
 
   useEffect(() => {
     if (!getCurrentUserId()) return
@@ -134,21 +160,58 @@ export default function MapPage() {
       )}
 
       {/* Floating Navigation Sidebar */}
-      <aside className="map-page-sidebar" aria-label="Navigation et commodités">
-        <AuthHeader className="map-page-sidebar__logo" showSubtitle={false} />
-        <div className="map-page-sidebar__nav">
-          <button type="button" className="map-page-nav-btn" onClick={() => navigate('/shop')}>
-            Boutique
-          </button>
-          <button type="button" className="map-page-nav-btn" onClick={() => navigate('/settings')}>
-            Paramètres
+      <aside
+        className={`map-page-sidebar ${isPanelOpen ? 'is-open' : 'is-collapsed'}`}
+        aria-label="Navigation et commodités"
+      >
+        <div className="map-page-sidebar__header">
+          <AuthHeader className="map-page-sidebar__logo" showSubtitle={false} />
+          <button
+            type="button"
+            className="map-page-sidebar__toggle"
+            onClick={() => setIsPanelOpen((prev) => !prev)}
+            aria-expanded={isPanelOpen}
+            aria-controls="map-page-sidebar-body"
+            aria-label={isPanelOpen ? 'Replier le panneau' : 'Déplier le panneau'}
+          >
+            <span className="map-page-sidebar__toggle-text">
+              {isPanelOpen ? 'Fermer' : 'Itinéraire'}
+            </span>
+            <svg
+              className="map-page-sidebar__toggle-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           </button>
         </div>
-        <RoutePanel onSelectRoom={setSelectedRoomId} onRouteChange={setRoute} />
-        <AmenitiesPanel
-          activeAmenityId={activeAmenityId}
-          onSelectAmenity={setActiveAmenityId}
-        />
+        <div
+          id="map-page-sidebar-body"
+          className="map-page-sidebar__body"
+          hidden={isMobile && !isPanelOpen}
+        >
+          <div className="map-page-sidebar__nav">
+            <button type="button" className="map-page-nav-btn" onClick={() => navigate('/shop')}>
+              Boutique
+            </button>
+            <button type="button" className="map-page-nav-btn" onClick={() => navigate('/settings')}>
+              Paramètres
+            </button>
+          </div>
+          <RoutePanel onSelectRoom={handleSelectRoomFromPanel} onRouteChange={handleRouteChange} />
+          <AmenitiesPanel
+            activeAmenityId={activeAmenityId}
+            onSelectAmenity={setActiveAmenityId}
+          />
+        </div>
       </aside>
     </div>
   )
