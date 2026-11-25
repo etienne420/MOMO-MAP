@@ -138,6 +138,7 @@ export default function MapPage() {
       <MapCanvas
         theme={theme}
         reducedMotion={reducedMotion}
+        showRoomNames={isDevMode}
         activeAmenityId={activeAmenityId}
         selectedRoomId={selectedRoomId}
         selectedPinId={selectedPinId}
