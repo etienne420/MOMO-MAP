@@ -23,7 +23,7 @@
 .btn--primary,
 .btn--dark {
   background-color: var(--color-dark-btn, #0f172a);
-  color: #ffffff;
+  color: var(--color-text-white, #ffffff);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
 }
 
@@ -41,16 +41,16 @@
 
 /* Outline Variant for Social Logins (Google, Facebook) */
 .btn--outline {
-  background-color: #ffffff;
-  color: #1e293b;
-  border-color: #e2e8f0;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text-title, #1e293b);
+  border-color: var(--color-border-input, #e2e8f0);
   font-weight: 500;
   padding: 11px 20px;
 }
 
 .btn--outline:hover:not(:disabled) {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
+  background-color: var(--color-surface-hover, #f8fafc);
+  border-color: var(--color-border-input, #cbd5e1);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
 }

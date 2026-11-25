@@ -12,7 +12,7 @@
 .modern-auth-form__toggle-pw {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--color-text-muted, #64748b);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -22,7 +22,7 @@
 }
 
 .modern-auth-form__toggle-pw:hover {
-  color: #0f172a;
+  color: var(--color-text-title, #0f172a);
 }
 
 .modern-auth-form__submit-btn {
@@ -34,13 +34,13 @@
   margin-top: 22px;
   text-align: center;
   font-size: 13px;
-  color: #475569;
+  color: var(--color-text-body, #475569);
 }
 
 .modern-auth-form__switch-link {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-text-title, #0f172a);
   background: none;
   border: none;
   cursor: pointer;
@@ -56,14 +56,14 @@
 /* Legal Notice */
 .auth-terms-notice {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--color-text-subtle, #94a3b8);
   text-align: center;
   margin-top: 14px;
   line-height: 1.5;
 }
 
 .auth-terms-notice a {
-  color: #64748b;
+  color: var(--color-text-muted, #64748b);
   text-decoration: underline;
   transition: color 0.15s ease;
 }

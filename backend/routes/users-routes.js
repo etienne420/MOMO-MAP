@@ -53,7 +53,4 @@ router.patch("/:uid/shop/equip", validateEquipItem, usersController.equipItem);
 // Préférences
 router.patch("/:uid/settings", validateSettingsUpdate, usersController.updateSettings);
 
-// Bonus quotidien (1 jeton par jour)
-router.post("/:uid/daily-bonus", validateUidParam, usersController.claimDailyBonus);
-
 export default router;

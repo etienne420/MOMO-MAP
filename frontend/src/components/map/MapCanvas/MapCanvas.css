@@ -121,7 +121,7 @@
 }
 
 #momo-pins-layer [data-pin-id]:hover {
-  stroke: #111827;
+  stroke: var(--color-text-title, #111827);
   stroke-width: 1.5px;
 }
 
@@ -180,7 +180,7 @@
 }
 
 .momo-route-casing {
-  stroke: #ffffff;
+  stroke: var(--map-ground, #ffffff);
   stroke-width: 8px;
 }
 
@@ -200,7 +200,8 @@
 }
 
 .momo-route-marker--end {
-  fill: #111827;
+  fill: var(--color-text-title, #111827);
+  stroke: var(--map-ground, #ffffff);
   stroke-width: 1.4px;
 }
 
@@ -284,8 +285,8 @@
   padding: 8px 14px;
   border-radius: 999px;
   /* No backdrop-filter: blurring the map behind it on every frame made zooming lag */
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid rgba(218, 220, 224, 0.85);
+  background: var(--color-surface-float, rgba(255, 255, 255, 0.97));
+  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.85));
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
   transition: all 0.25s ease;
 }
@@ -318,12 +319,12 @@
 .momo-zoom-stage-title {
   font-size: 12px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-title, #111827);
 }
 
 .momo-zoom-stage-subtitle {
   font-size: 11px;
-  color: #4b5563;
+  color: var(--color-text-muted, #4b5563);
 }
 
 .momo-stage-jump-btn {
@@ -331,7 +332,7 @@
   border-radius: 999px;
   border: none;
   background: var(--color-primary, #1e6b37);
-  color: #ffffff;
+  color: var(--color-on-primary, #ffffff);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -365,11 +366,11 @@
 .google-maps-btn-stack {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--color-surface, #ffffff);
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2), 0 1px 2px rgba(60, 64, 67, 0.15);
   overflow: hidden;
-  border: 1px solid rgba(218, 220, 224, 0.7);
+  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.7));
 }
 
 .google-maps-ctrl-btn {
@@ -378,8 +379,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
-  color: #5f6368;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-muted, #5f6368);
   border: none;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -387,16 +388,16 @@
 }
 
 .google-maps-ctrl-btn:hover {
-  background-color: #f8f9fa;
-  color: #202124;
+  background-color: var(--color-surface-hover, #f8f9fa);
+  color: var(--color-text-title, #202124);
 }
 
 .google-maps-ctrl-btn:active {
-  background-color: #e8eaed;
+  background-color: var(--color-surface-muted, #e8eaed);
 }
 
 .google-maps-ctrl-btn + .google-maps-ctrl-btn {
-  border-top: 1px solid #e8eaed;
+  border-top: 1px solid var(--color-border-soft, #e8eaed);
 }
 
 .google-maps-ctrl-btn-single {
@@ -405,22 +406,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
-  color: #5f6368;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-muted, #5f6368);
   border-radius: 8px;
-  border: 1px solid rgba(218, 220, 224, 0.7);
+  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.7));
   box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2), 0 1px 2px rgba(60, 64, 67, 0.15);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .google-maps-ctrl-btn-single:hover {
-  background-color: #f8f9fa;
-  color: #1a73e8;
+  background-color: var(--color-surface-hover, #f8f9fa);
+  color: var(--color-primary, #1a73e8);
 }
 
 .google-maps-ctrl-btn-single:active {
-  background-color: #e8eaed;
+  background-color: var(--color-surface-muted, #e8eaed);
 }
 
 /* ==========================================================================
