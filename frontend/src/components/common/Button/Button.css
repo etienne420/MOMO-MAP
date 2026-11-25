@@ -31,7 +31,7 @@
 .btn--dark:hover:not(:disabled) {
   background-color: var(--color-primary, #1e6b37);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(30, 107, 55, 0.3);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary, #1e6b37) 30%, transparent);
 }
 
 .btn--primary:active:not(:disabled),
