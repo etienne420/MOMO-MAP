@@ -2,6 +2,7 @@
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh; /* mobile : exclut la barre d'adresse du navigateur */
   box-sizing: border-box;
   overflow: hidden;
   display: flex;
@@ -26,6 +27,64 @@
 
 .map-page-sidebar::-webkit-scrollbar {
   display: none;
+}
+
+/* En-tête du panneau (logo + bouton replier/déplier sur mobile) */
+.map-page-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.map-page-sidebar__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.map-page-sidebar__body[hidden] {
+  display: none;
+}
+
+/* Le bouton n'existe que sur mobile */
+.map-page-sidebar__toggle {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #18181b;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.map-page-sidebar__toggle:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.map-page-sidebar__toggle:focus-visible {
+  outline: 3px solid rgba(30, 107, 55, 0.35);
+  outline-offset: 2px;
+}
+
+.map-page-sidebar__toggle-icon {
+  transition: transform 0.2s ease;
+}
+
+.map-page-sidebar.is-open .map-page-sidebar__toggle-icon {
+  transform: rotate(180deg);
 }
 
 /* Auth Header logo styling in sidebar - NO BACKGROUND */
@@ -114,19 +173,56 @@
   color: #ffffff;
 }
 
+/* Mobile : la barre latérale devient un panneau rétractable en haut de l'écran */
 @media (max-width: 640px) {
   .map-page-screen {
-    padding-left: 16px;
+    padding: 12px 12px 0;
     align-items: flex-start;
-    padding-top: 16px;
   }
 
   .map-page-sidebar {
-    width: 232px;
+    z-index: 25; /* au-dessus des contrôles de zoom quand il est déplié */
+    width: 100%;
+    max-width: 420px;
+    max-height: calc(100dvh - 24px);
     gap: 12px;
+    padding: 8px 8px 8px 14px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.14), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
+  }
+
+  .map-page-sidebar.is-open {
+    padding-bottom: 12px;
+  }
+
+  .map-page-sidebar__header {
+    justify-content: space-between;
+  }
+
+  .map-page-sidebar__logo.auth-header {
+    width: auto;
   }
 
   .map-page-sidebar__logo .auth-header__title {
-    font-size: 26px;
+    font-size: 24px;
+    text-align: left;
+  }
+
+  .map-page-sidebar__toggle {
+    display: inline-flex;
+  }
+
+  .map-page-sidebar__body {
+    gap: 12px;
+    padding-right: 6px;
+  }
+
+  /* Dans le panneau mobile, les cartes n'ont plus besoin de leur propre ombre */
+  .map-page-sidebar .route-card,
+  .map-page-sidebar .amenities-card {
+    box-shadow: none;
   }
 }
