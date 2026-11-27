@@ -281,7 +281,7 @@ export default function MapPage() {
 
 // Logo du Collège Montmorency : placer le fichier officiel dans frontend/public/logo-montmorency.svg.
 // Tant qu'il est absent, on affiche le nom du Collège en texte.
-const LOGO_URL = '/logo-montmorency.svg'
+const LOGO_URL = '/logo.png'
 
 function MapLogo() {
   const [failed, setFailed] = useState(false)

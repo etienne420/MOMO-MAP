@@ -5,7 +5,7 @@ function LayersIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="3" width="13" height="13" rx="3" />
-      <rect x="8" y="8" width="13" height="13" rx="3" fill="#ffffff" />
+      <rect x="8" y="8" width="13" height="13" rx="3" style={{ fill: 'var(--color-surface, #ffffff)' }} />
     </svg>
   )
 }

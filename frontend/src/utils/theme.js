@@ -59,19 +59,38 @@ export function applyUiTheme(theme) {
   if (typeof document === 'undefined') return
   const root = document.documentElement
   const primary = sanitizeColor(theme?.primaryColor)
+  const isDark = theme?.mode === 'dark'
 
   if (!primary) {
     UI_VARS.forEach((name) => root.style.removeProperty(name))
     root.removeAttribute('data-theme')
+    root.removeAttribute('data-theme-mode')
   } else {
     root.style.setProperty('--color-primary', primary)
-    root.style.setProperty('--color-primary-hover', `color-mix(in srgb, ${primary} 82%, black)`)
-    root.style.setProperty('--color-primary-active', `color-mix(in srgb, ${primary} 66%, black)`)
-    root.style.setProperty('--color-primary-light', `color-mix(in srgb, ${primary} 10%, white)`)
+    root.style.setProperty(
+      '--color-primary-hover',
+      isDark
+        ? `color-mix(in srgb, ${primary} 84%, white)`
+        : `color-mix(in srgb, ${primary} 82%, black)`,
+    )
+    root.style.setProperty(
+      '--color-primary-active',
+      isDark
+        ? `color-mix(in srgb, ${primary} 70%, white)`
+        : `color-mix(in srgb, ${primary} 66%, black)`,
+    )
+    root.style.setProperty(
+      '--color-primary-light',
+      isDark
+        ? `color-mix(in srgb, ${primary} 18%, transparent)`
+        : `color-mix(in srgb, ${primary} 10%, white)`,
+    )
     root.style.setProperty('--color-primary-ring', `color-mix(in srgb, ${primary} 15%, transparent)`)
     root.style.setProperty('--color-border-focus', primary)
     root.style.setProperty('--color-dark-btn-hover', primary)
     root.setAttribute('data-theme', theme?.nom ? String(theme.nom) : 'custom')
+    // Bascule les surfaces/textes clairs vers leur variante sombre (voir variables.css)
+    root.setAttribute('data-theme-mode', isDark ? 'dark' : 'light')
   }
 
   try {

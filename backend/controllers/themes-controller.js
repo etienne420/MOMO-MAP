@@ -52,6 +52,12 @@ export async function createTheme(req, res, next) {
       themeData.crosshairColor = req.body.crosshairColor.trim();
     if (req.body.backgroundColor)
       themeData.backgroundColor = req.body.backgroundColor.trim();
+    if (req.body.greenColor) themeData.greenColor = req.body.greenColor.trim();
+    if (req.body.primaryColor)
+      themeData.primaryColor = req.body.primaryColor.trim();
+    if (req.body.mode === "dark" || req.body.mode === "light") {
+      themeData.mode = req.body.mode;
+    }
     if (req.body.animate !== undefined) {
       themeData.animate =
         req.body.animate === true || req.body.animate === "true";

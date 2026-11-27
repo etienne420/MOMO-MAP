@@ -64,7 +64,7 @@ html.is-zoom-locked body {
 .map-page-sidebar .amenities-card {
   width: 100%;
   /* No backdrop-filter: blurring the map behind the cards on every frame made zooming lag */
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--color-surface-float, rgba(255, 255, 255, 0.97));
   box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
 }
 
@@ -78,9 +78,9 @@ html.is-zoom-locked body {
   flex: 1;
   height: 38px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #18181b;
+  border: 1px solid var(--color-border-soft, #e5e7eb);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-title, #18181b);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -88,8 +88,8 @@ html.is-zoom-locked body {
 }
 
 .map-page-nav-btn:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: var(--color-surface-hover, #f9fafb);
+  border-color: var(--color-border-input, #d1d5db);
 }
 
 .map-page-dev-btn {
@@ -101,7 +101,7 @@ html.is-zoom-locked body {
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid var(--color-border-input, #e2e8f0);
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--color-surface-float, rgba(255, 255, 255, 0.96));
   color: var(--color-text-title, #0f172a);
   font-family: var(--font-family-base);
   font-size: 12px;
@@ -112,14 +112,14 @@ html.is-zoom-locked body {
 }
 
 .map-page-dev-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--color-surface-hover, #f8fafc);
+  border-color: var(--color-border-input, #cbd5e1);
 }
 
 .map-page-dev-btn.is-open {
   background: var(--color-primary, #1e6b37);
   border-color: var(--color-primary, #1e6b37);
-  color: #ffffff;
+  color: var(--color-on-primary, #ffffff);
 }
 
 /* ==========================================================================
@@ -172,7 +172,7 @@ html.is-zoom-locked body {
   max-width: 480px;
   padding: 10px 10px 10px 12px;
   border-radius: 26px;
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--color-surface-float, rgba(255, 255, 255, 0.97));
   box-shadow: 0 10px 30px -6px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
 }
 
@@ -207,9 +207,9 @@ html.is-zoom-locked body {
 
 .map-mobile-sheet {
   pointer-events: auto;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--color-surface-float, rgba(255, 255, 255, 0.98));
   border-radius: 26px 26px 0 0;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid var(--color-border-soft, rgba(226, 232, 240, 0.9));
   border-bottom: none;
   box-shadow: 0 -8px 28px -8px rgba(15, 23, 42, 0.14);
   padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px));
@@ -237,7 +237,7 @@ html.is-zoom-locked body {
   width: 40px;
   height: 4px;
   border-radius: 999px;
-  background: #d1d5db;
+  background: var(--color-border-input, #d1d5db);
 }
 
 .map-mobile-sheet__handle:focus-visible .map-mobile-sheet__grabber {

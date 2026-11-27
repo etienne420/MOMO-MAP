@@ -1,8 +1,8 @@
 .amenities-card {
   width: 248px;
-  background-color: #ffffff;
+  background-color: var(--color-surface, #ffffff);
   border-radius: 24px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid var(--color-border-card, rgba(226, 232, 240, 0.8));
   padding: 16px 14px;
   box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
   box-sizing: border-box;
@@ -20,8 +20,8 @@
   height: 42px;
   padding: 0 10px;
   box-sizing: border-box;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-soft, #e5e7eb);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   display: flex;
@@ -34,20 +34,20 @@
 }
 
 .amenity-row:hover {
-  background-color: #f9fafb;
-  border-color: #d1d5db;
+  background-color: var(--color-surface-hover, #f9fafb);
+  border-color: var(--color-border-input, #d1d5db);
   transform: translateY(-1px);
 }
 
 .amenity-row.is-active {
-  background-color: #f0fdf4;
+  background-color: color-mix(in srgb, var(--color-primary, #1e6b37) 12%, var(--color-surface, #ffffff));
   border-color: var(--color-primary, #1e6b37);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary, #1e6b37) 15%, transparent);
 }
 
 .amenity-row:active {
   transform: translateY(0);
-  background-color: #f3f4f6;
+  background-color: var(--color-surface-muted, #f3f4f6);
 }
 
 .amenity-row__active-dot {
@@ -74,7 +74,7 @@
   font-family: inherit;
   font-size: 14px;
   font-weight: 450;
-  color: #18181b;
+  color: var(--color-text-title, #18181b);
   letter-spacing: -0.01em;
   user-select: none;
 }

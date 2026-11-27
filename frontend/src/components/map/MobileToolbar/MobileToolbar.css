@@ -12,8 +12,8 @@
   gap: 6px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: var(--color-surface-float, rgba(255, 255, 255, 0.97));
+  border: 1px solid var(--color-border-soft, rgba(226, 232, 240, 0.9));
   box-shadow: 0 6px 18px -4px rgba(15, 23, 42, 0.16), 0 2px 6px -1px rgba(15, 23, 42, 0.06);
   pointer-events: auto;
 }
@@ -28,19 +28,19 @@
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: #18181b;
+  color: var(--color-text-title, #18181b);
   cursor: pointer;
   transition: background-color 0.15s ease, transform 0.12s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-toolbar__btn--tinted {
-  background: color-mix(in srgb, var(--color-primary, #1e6b37) 10%, white);
+  background: color-mix(in srgb, var(--color-primary, #1e6b37) 12%, var(--color-surface, #ffffff));
 }
 
 .mobile-toolbar__btn:active {
   transform: scale(0.94);
-  background: #f1f5f9;
+  background: var(--color-surface-muted, #f1f5f9);
 }
 
 .mobile-toolbar__btn:focus-visible {
@@ -50,8 +50,8 @@
 
 /* Avatar de l'utilisateur (cercle vide si aucun avatar équipé) */
 .mobile-toolbar__avatar {
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
+  border: 1.5px solid var(--color-border-soft, #e5e7eb);
+  background: var(--color-surface, #ffffff);
   overflow: hidden;
 }
 
@@ -67,7 +67,7 @@
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: #18181b;
+  color: var(--color-text-title, #18181b);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -76,5 +76,5 @@
 
 .mobile-toolbar__dev.is-open {
   background: var(--color-primary, #1e6b37);
-  color: #ffffff;
+  color: var(--color-on-primary, #ffffff);
 }

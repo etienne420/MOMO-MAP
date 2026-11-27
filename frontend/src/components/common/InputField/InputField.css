@@ -8,7 +8,7 @@
 .input-field__label {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--color-text-title, #1e293b);
   letter-spacing: -0.01em;
   text-align: left;
 }
@@ -29,25 +29,25 @@
   width: 100%;
   padding: 13px 16px;
   font-size: 14.5px;
-  color: #0f172a;
+  color: var(--color-text-title, #0f172a);
   background-color: var(--color-bg-input, #f4f8fa);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-input, #e2e8f0);
   border-radius: 12px;
   outline: none;
   transition: all 0.2s ease;
 }
 
 .input-field__input::placeholder {
-  color: #94a3b8;
+  color: var(--color-text-subtle, #94a3b8);
   font-weight: 400;
 }
 
 .input-field__input:hover {
-  border-color: #cbd5e1;
+  border-color: var(--color-border-input, #cbd5e1);
 }
 
 .input-field__input:focus {
-  background-color: #ffffff;
+  background-color: var(--color-surface, #ffffff);
   border-color: var(--color-primary, #1e6b37);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #1e6b37) 14%, transparent);
 }
@@ -62,13 +62,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--color-text-muted, #64748b);
 }
 
 /* Error States */
 .input-field--has-error .input-field__input {
   border-color: var(--color-error);
-  background-color: #fff5f5;
+  background-color: var(--color-error-bg, #fff5f5);
 }
 
 .input-field--has-error .input-field__input:focus {
