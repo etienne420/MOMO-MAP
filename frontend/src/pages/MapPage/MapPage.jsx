@@ -213,9 +213,8 @@ export default function MapPage() {
 
       {isMobile ? (
         <>
-          {/* Haut : logo du Collège + recherche d'itinéraire */}
+          {/* Haut : espace supérieur fondu + recherche d'itinéraire */}
           <header ref={mobileTopRef} className="map-mobile-top">
-            <MapLogo />
             <RoutePanel onSelectRoom={setSelectedRoomId} onRouteChange={setRoute} />
           </header>
 

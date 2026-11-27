@@ -139,8 +139,14 @@ html.is-zoom-locked body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 0;
-  pointer-events: none; /* la carte reste manipulable entre le logo et la carte d'itinéraire */
+  padding: calc(36px + env(safe-area-inset-top, 0px)) 14px 18px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(255, 255, 255, 0.65) 45%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none; /* la carte reste manipulable dans la zone de fondu */
 }
 
 .map-mobile-top > * {
