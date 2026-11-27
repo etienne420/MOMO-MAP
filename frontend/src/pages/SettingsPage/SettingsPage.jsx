@@ -24,6 +24,9 @@ export default function SettingsPage() {
     showSchoolInsights: true,
     reducedMotion: false,
     devMode: getDevModeSetting(),
+    devViewPath: false,
+    devViewDoors: false,
+    devViewNames: true,
   }))
   const [status, setStatus] = useState('')
 
@@ -72,7 +75,17 @@ export default function SettingsPage() {
   }
 
   const visibleToggles = isAdmin
-    ? [...TOGGLES, { key: 'devMode', label: 'Mode développeur' }]
+    ? [
+        ...TOGGLES,
+        { key: 'devMode', label: 'Mode développeur' },
+        ...(settings.devMode
+          ? [
+              { key: 'devViewPath', label: 'View path' },
+              { key: 'devViewDoors', label: 'View doors' },
+              { key: 'devViewNames', label: 'View names' },
+            ]
+          : []),
+      ]
     : TOGGLES
 
   return (

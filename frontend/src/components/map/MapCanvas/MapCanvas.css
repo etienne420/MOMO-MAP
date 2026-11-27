@@ -284,10 +284,15 @@
   gap: 12px;
   padding: 8px 14px;
   border-radius: 999px;
-  /* No backdrop-filter: blurring the map behind it on every frame made zooming lag */
-  background: var(--color-surface-float, rgba(255, 255, 255, 0.97));
-  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.85));
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.44) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.92),
+    inset 0 -1px 1px rgba(15, 23, 42, 0.05),
+    0 8px 24px -4px rgba(15, 23, 42, 0.14),
+    0 2px 6px -1px rgba(15, 23, 42, 0.06);
   transition: all 0.25s ease;
 }
 
@@ -366,11 +371,16 @@
 .google-maps-btn-stack {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface, #ffffff);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.44) 100%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2), 0 1px 2px rgba(60, 64, 67, 0.15);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 6px 18px -4px rgba(15, 23, 42, 0.16),
+    0 2px 6px -1px rgba(15, 23, 42, 0.06);
   overflow: hidden;
-  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.7));
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .google-maps-ctrl-btn {
@@ -379,7 +389,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface, #ffffff);
+  background: transparent;
   color: var(--color-text-muted, #5f6368);
   border: none;
   cursor: pointer;
@@ -388,16 +398,16 @@
 }
 
 .google-maps-ctrl-btn:hover {
-  background-color: var(--color-surface-hover, #f8f9fa);
+  background-color: rgba(255, 255, 255, 0.45);
   color: var(--color-text-title, #202124);
 }
 
 .google-maps-ctrl-btn:active {
-  background-color: var(--color-surface-muted, #e8eaed);
+  background-color: rgba(255, 255, 255, 0.65);
 }
 
 .google-maps-ctrl-btn + .google-maps-ctrl-btn {
-  border-top: 1px solid var(--color-border-soft, #e8eaed);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .google-maps-ctrl-btn-single {
@@ -406,11 +416,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface, #ffffff);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.44) 100%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   color: var(--color-text-muted, #5f6368);
   border-radius: 8px;
-  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.7));
-  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2), 0 1px 2px rgba(60, 64, 67, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 6px 18px -4px rgba(15, 23, 42, 0.16),
+    0 2px 6px -1px rgba(15, 23, 42, 0.06);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }

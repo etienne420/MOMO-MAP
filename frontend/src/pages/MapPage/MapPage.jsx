@@ -32,6 +32,9 @@ export default function MapPage() {
   const [isDevMode, setIsDevMode] = useState(
     () => getSessionRole() === 'admin' && getDevModeSetting(),
   )
+  const [devViewPath, setDevViewPath] = useState(false)
+  const [devViewDoors, setDevViewDoors] = useState(false)
+  const [devViewNames, setDevViewNames] = useState(true)
   const [isDevModalOpen, setIsDevModalOpen] = useState(false)
   const [vectorOverrides, setVectorOverrides] = useState(() => loadVectorOverrides())
   const navigate = useNavigate()
@@ -112,6 +115,11 @@ export default function MapPage() {
                 : getDevModeSetting()
             setDevModeSetting(devEnabled)
             setIsDevMode(devEnabled)
+            setDevViewPath(Boolean(u.settings?.devViewPath))
+            setDevViewDoors(Boolean(u.settings?.devViewDoors))
+            setDevViewNames(
+              typeof u.settings?.devViewNames === 'boolean' ? u.settings.devViewNames : true,
+            )
           } else {
             setIsDevMode(false)
             setIsDevModalOpen(false)
@@ -183,7 +191,9 @@ export default function MapPage() {
       <MapCanvas
         theme={theme}
         reducedMotion={reducedMotion}
-        showRoomNames={isDevMode}
+        showRoomNames={isDevMode && devViewNames}
+        showPins={isDevMode && devViewDoors}
+        showCorridorPath={isDevMode && devViewPath}
         activeAmenityId={activeAmenityId}
         selectedRoomId={selectedRoomId}
         selectedPinId={selectedPinId}

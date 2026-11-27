@@ -1,14 +1,20 @@
 .route-card {
   width: 248px;
-  background-color: var(--color-surface, #ffffff);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.76) 0%, rgba(255, 255, 255, 0.48) 100%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   border-radius: 24px;
-  border: 1px solid var(--color-border-card, rgba(226, 232, 240, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.8);
   padding: 16px 14px 16px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.92),
+    inset 0 -1px 1px rgba(15, 23, 42, 0.05),
+    0 12px 32px -6px rgba(15, 23, 42, 0.14),
+    0 4px 12px -2px rgba(15, 23, 42, 0.05);
   box-sizing: border-box;
 }
 
@@ -25,7 +31,7 @@
   height: 40px;
   padding: 0 14px;
   box-sizing: border-box;
-  background-color: var(--color-surface, #ffffff);
+  background-color: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--color-border-soft, #e5e7eb);
   border-radius: 12px;
   font-family: inherit;
