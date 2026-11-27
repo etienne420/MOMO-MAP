@@ -48,6 +48,9 @@ const userSchema = new mongoose.Schema({
     showSchoolInsights: { type: Boolean, default: true },
     reducedMotion: { type: Boolean, default: false },
     devMode: { type: Boolean, default: false },
+    devViewPath: { type: Boolean, default: false },
+    devViewDoors: { type: Boolean, default: false },
+    devViewNames: { type: Boolean, default: true },
   },
 });
 

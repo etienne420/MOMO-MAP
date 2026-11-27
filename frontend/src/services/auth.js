@@ -1,5 +1,7 @@
 const SESSION_TOKEN_KEY = 'momo-map.access-token'
 const DEV_MODE_KEY = 'momo-map.dev-mode'
+const DEV_VIEW_KEY = 'momo-map.dev-view'
+const DEFAULT_DEV_VIEW = { devViewPath: false, devViewDoors: false, devViewNames: true }
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim()
 
 function getTokenClaims(token) {
@@ -263,6 +265,40 @@ export function setDevModeSetting(enabled) {
     // ignore storage errors
   }
   return value
+}
+
+export function getDevViewSettings() {
+  if (getSessionRole() !== 'admin') return { ...DEFAULT_DEV_VIEW }
+  try {
+    const raw = window.localStorage.getItem(DEV_VIEW_KEY)
+    if (!raw) return { ...DEFAULT_DEV_VIEW }
+    const parsed = JSON.parse(raw)
+    return {
+      devViewPath: typeof parsed.devViewPath === 'boolean' ? parsed.devViewPath : false,
+      devViewDoors: typeof parsed.devViewDoors === 'boolean' ? parsed.devViewDoors : false,
+      devViewNames: typeof parsed.devViewNames === 'boolean' ? parsed.devViewNames : true,
+    }
+  } catch {
+    return { ...DEFAULT_DEV_VIEW }
+  }
+}
+
+export function setDevViewSettings(partial) {
+  if (getSessionRole() !== 'admin') {
+    try {
+      window.localStorage.removeItem(DEV_VIEW_KEY)
+    } catch {
+      // ignore storage errors
+    }
+    return { ...DEFAULT_DEV_VIEW }
+  }
+  const next = { ...getDevViewSettings(), ...partial }
+  try {
+    window.localStorage.setItem(DEV_VIEW_KEY, JSON.stringify(next))
+  } catch {
+    // ignore storage errors
+  }
+  return next
 }
 
 export function getCurrentUserId() {

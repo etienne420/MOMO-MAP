@@ -12,6 +12,8 @@ import {
   getSessionRole,
   getDevModeSetting,
   setDevModeSetting,
+  getDevViewSettings,
+  setDevViewSettings,
 } from '../../services/auth'
 import {
   loadVectorOverrides,
@@ -32,9 +34,10 @@ export default function MapPage() {
   const [isDevMode, setIsDevMode] = useState(
     () => getSessionRole() === 'admin' && getDevModeSetting(),
   )
-  const [devViewPath, setDevViewPath] = useState(false)
-  const [devViewDoors, setDevViewDoors] = useState(false)
-  const [devViewNames, setDevViewNames] = useState(true)
+  const initialDevView = getDevViewSettings()
+  const [devViewPath, setDevViewPath] = useState(() => initialDevView.devViewPath)
+  const [devViewDoors, setDevViewDoors] = useState(() => initialDevView.devViewDoors)
+  const [devViewNames, setDevViewNames] = useState(() => initialDevView.devViewNames)
   const [isDevModalOpen, setIsDevModalOpen] = useState(false)
   const [vectorOverrides, setVectorOverrides] = useState(() => loadVectorOverrides())
   const navigate = useNavigate()
@@ -115,11 +118,25 @@ export default function MapPage() {
                 : getDevModeSetting()
             setDevModeSetting(devEnabled)
             setIsDevMode(devEnabled)
-            setDevViewPath(Boolean(u.settings?.devViewPath))
-            setDevViewDoors(Boolean(u.settings?.devViewDoors))
-            setDevViewNames(
-              typeof u.settings?.devViewNames === 'boolean' ? u.settings.devViewNames : true,
-            )
+            const cachedView = getDevViewSettings()
+            const nextView = {
+              devViewPath:
+                typeof u.settings?.devViewPath === 'boolean'
+                  ? u.settings.devViewPath
+                  : cachedView.devViewPath,
+              devViewDoors:
+                typeof u.settings?.devViewDoors === 'boolean'
+                  ? u.settings.devViewDoors
+                  : cachedView.devViewDoors,
+              devViewNames:
+                typeof u.settings?.devViewNames === 'boolean'
+                  ? u.settings.devViewNames
+                  : cachedView.devViewNames,
+            }
+            setDevViewSettings(nextView)
+            setDevViewPath(nextView.devViewPath)
+            setDevViewDoors(nextView.devViewDoors)
+            setDevViewNames(nextView.devViewNames)
           } else {
             setIsDevMode(false)
             setIsDevModalOpen(false)
