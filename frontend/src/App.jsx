@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { getAuthToken } from './services/auth'
 import { applyUiTheme } from './utils/theme'
+import usePageZoomLock from './hooks/usePageZoomLock'
 import LoginPage from './pages/LoginPage/LoginPage'
 import SignUpPage from './pages/SignUpPage/SignUpPage'
 import MapPage from './pages/MapPage/MapPage'
@@ -48,6 +49,7 @@ function RequireAuth({ children }) {
 }
 
 function App() {
+  usePageZoomLock(true)
   return (
     <BrowserRouter>
       <Routes>

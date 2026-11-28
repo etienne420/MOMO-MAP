@@ -64,8 +64,10 @@
 
 @media (max-width: 540px) {
   .login-page {
-    padding: 24px 12px;
-    align-items: flex-start;
+    height: 100dvh;
+    overflow: hidden;
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 12px calc(20px + env(safe-area-inset-bottom, 0px));
+    align-items: center;
   }
 
   .login-page__hero-section {

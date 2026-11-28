@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 // Bloque le zoom du navigateur (pincement, double toucher) tant que le composant est affiché.
 // Utilisé sur la page de la carte : la carte gère son propre zoom, et sans ce verrou le pincement
 // zoomait aussi toute la page. Les autres pages restent zoomables (accessibilité).
-const LOCKED_VIEWPORT = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'
+const LOCKED_VIEWPORT = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
 
 export default function usePageZoomLock(enabled = true) {
   useEffect(() => {
