@@ -7,6 +7,8 @@ import {
   getSessionRole,
   getDevModeSetting,
   setDevModeSetting,
+  getDevViewSettings,
+  setDevViewSettings,
 } from '../../services/auth'
 import './SettingsPage.css'
 
@@ -24,6 +26,7 @@ export default function SettingsPage() {
     showSchoolInsights: true,
     reducedMotion: false,
     devMode: getDevModeSetting(),
+    ...getDevViewSettings(),
   }))
   const [status, setStatus] = useState('')
 
@@ -37,12 +40,35 @@ export default function SettingsPage() {
         const adminRole = u.role === 'admin' || getSessionRole() === 'admin'
         setIsAdmin(adminRole)
         if (u.settings) {
+          const cachedView = getDevViewSettings()
           const merged = {
             ...u.settings,
             devMode: adminRole ? Boolean(u.settings.devMode) : false,
+            devViewPath: adminRole
+              ? typeof u.settings.devViewPath === 'boolean'
+                ? u.settings.devViewPath
+                : cachedView.devViewPath
+              : false,
+            devViewDoors: adminRole
+              ? typeof u.settings.devViewDoors === 'boolean'
+                ? u.settings.devViewDoors
+                : cachedView.devViewDoors
+              : false,
+            devViewNames: adminRole
+              ? typeof u.settings.devViewNames === 'boolean'
+                ? u.settings.devViewNames
+                : cachedView.devViewNames
+              : true,
           }
-          if (adminRole && typeof u.settings.devMode === 'boolean') {
-            setDevModeSetting(u.settings.devMode)
+          if (adminRole) {
+            if (typeof u.settings.devMode === 'boolean') {
+              setDevModeSetting(u.settings.devMode)
+            }
+            setDevViewSettings({
+              devViewPath: merged.devViewPath,
+              devViewDoors: merged.devViewDoors,
+              devViewNames: merged.devViewNames,
+            })
           }
           setSettings((prev) => ({ ...prev, ...merged }))
         }
@@ -61,9 +87,20 @@ export default function SettingsPage() {
     if (key === 'devMode' && isAdmin) {
       setDevModeSetting(next.devMode)
     }
+    if ((key === 'devViewPath' || key === 'devViewDoors' || key === 'devViewNames') && isAdmin) {
+      setDevViewSettings({ [key]: next[key] })
+    }
     setStatus('Enregistrement…')
     try {
-      const payload = isAdmin ? next : { ...next, devMode: undefined }
+      const payload = isAdmin
+        ? next
+        : {
+            ...next,
+            devMode: undefined,
+            devViewPath: undefined,
+            devViewDoors: undefined,
+            devViewNames: undefined,
+          }
       await updateUserSettings(currentUid, payload)
       setStatus('Enregistré')
     } catch (e) {
@@ -72,7 +109,17 @@ export default function SettingsPage() {
   }
 
   const visibleToggles = isAdmin
-    ? [...TOGGLES, { key: 'devMode', label: 'Mode développeur' }]
+    ? [
+        ...TOGGLES,
+        { key: 'devMode', label: 'Mode développeur' },
+        ...(settings.devMode
+          ? [
+              { key: 'devViewPath', label: 'View path' },
+              { key: 'devViewDoors', label: 'View doors' },
+              { key: 'devViewNames', label: 'View names' },
+            ]
+          : []),
+      ]
     : TOGGLES
 
   return (

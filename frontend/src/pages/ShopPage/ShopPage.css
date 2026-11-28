@@ -1,6 +1,11 @@
 .shop-page {
-  min-height: 100vh;
-  padding: 32px;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 20px calc(32px + env(safe-area-inset-bottom, 0px));
   background: var(--color-bg-page, #fbfbfd);
   font-family: var(--font-family-base);
 }

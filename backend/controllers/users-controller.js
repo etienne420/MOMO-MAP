@@ -538,8 +538,12 @@ async function updateSettings(req, res, next) {
         user.settings[key] = incoming[key];
       }
     }
-    if (typeof incoming.devMode === "boolean" && user.role === "admin") {
-      user.settings.devMode = incoming.devMode;
+    if (user.role === "admin") {
+      for (const devKey of ["devMode", "devViewPath", "devViewDoors", "devViewNames"]) {
+        if (typeof incoming[devKey] === "boolean") {
+          user.settings[devKey] = incoming[devKey];
+        }
+      }
     }
 
     await user.save();

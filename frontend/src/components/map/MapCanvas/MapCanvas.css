@@ -177,6 +177,29 @@
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: momo-route-draw 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes momo-route-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes momo-pin-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .momo-route-casing {
@@ -185,7 +208,7 @@
 }
 
 .momo-route-line {
-  stroke: var(--color-primary, #1e6b37);
+  stroke: #379FD8;
   stroke-width: 4.5px;
 }
 
@@ -194,15 +217,17 @@
   stroke-width: 2px;
 }
 
-/* Départ : point bleu ; arrivée : épingle noire */
+/* Départ : point bleu ; arrivée : épingle verte */
 .momo-route-marker--start {
-  fill: #4f7fe0;
+  fill: #379FD8;
 }
 
 .momo-route-marker--end {
-  fill: var(--color-text-title, #111827);
+  fill: #44B949;
   stroke: var(--map-ground, #ffffff);
   stroke-width: 1.4px;
+  transform-origin: 0 0;
+  animation: momo-pin-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both;
 }
 
 /* Highlight Polygon for Hovered / Selected Room */
@@ -284,10 +309,15 @@
   gap: 12px;
   padding: 8px 14px;
   border-radius: 999px;
-  /* No backdrop-filter: blurring the map behind it on every frame made zooming lag */
-  background: var(--color-surface-float, rgba(255, 255, 255, 0.97));
-  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.85));
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.44) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.92),
+    inset 0 -1px 1px rgba(15, 23, 42, 0.05),
+    0 8px 24px -4px rgba(15, 23, 42, 0.14),
+    0 2px 6px -1px rgba(15, 23, 42, 0.06);
   transition: all 0.25s ease;
 }
 
@@ -366,11 +396,16 @@
 .google-maps-btn-stack {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface, #ffffff);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.44) 100%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2), 0 1px 2px rgba(60, 64, 67, 0.15);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 6px 18px -4px rgba(15, 23, 42, 0.16),
+    0 2px 6px -1px rgba(15, 23, 42, 0.06);
   overflow: hidden;
-  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.7));
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .google-maps-ctrl-btn {
@@ -379,7 +414,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface, #ffffff);
+  background: transparent;
   color: var(--color-text-muted, #5f6368);
   border: none;
   cursor: pointer;
@@ -388,16 +423,16 @@
 }
 
 .google-maps-ctrl-btn:hover {
-  background-color: var(--color-surface-hover, #f8f9fa);
+  background-color: rgba(255, 255, 255, 0.45);
   color: var(--color-text-title, #202124);
 }
 
 .google-maps-ctrl-btn:active {
-  background-color: var(--color-surface-muted, #e8eaed);
+  background-color: rgba(255, 255, 255, 0.65);
 }
 
 .google-maps-ctrl-btn + .google-maps-ctrl-btn {
-  border-top: 1px solid var(--color-border-soft, #e8eaed);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .google-maps-ctrl-btn-single {
@@ -406,11 +441,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface, #ffffff);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.44) 100%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   color: var(--color-text-muted, #5f6368);
   border-radius: 8px;
-  border: 1px solid var(--color-border-soft, rgba(218, 220, 224, 0.7));
-  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.2), 0 1px 2px rgba(60, 64, 67, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 6px 18px -4px rgba(15, 23, 42, 0.16),
+    0 2px 6px -1px rgba(15, 23, 42, 0.06);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -463,8 +503,7 @@
 
 /* Thème animé : le local sélectionné et l'arrivée du trajet « respirent » doucement.
    Seuls de petits éléments sont animés pour ne pas redessiner toute la carte. */
-.map-canvas-container.is-animated .momo-room-highlight.is-selected,
-.map-canvas-container.is-animated .momo-route-marker--end {
+.map-canvas-container.is-animated .momo-room-highlight.is-selected {
   animation: momo-theme-pulse 1.8s ease-in-out infinite;
 }
 
@@ -494,6 +533,12 @@
   animation: none;
 }
 
+.map-canvas-container.is-low-power .momo-route-casing,
+.map-canvas-container.is-low-power .momo-route-line {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
 /* Le contour des étiquettes est coûteux à dessiner : plus fin en mode économie */
 .map-canvas-container.is-low-power .momo-room-label-text {
   stroke-width: 1.2px;
@@ -509,6 +554,12 @@
   .map-canvas-container .momo-room-highlight,
   .map-canvas-container .momo-route-marker {
     animation: none;
+  }
+
+  .map-canvas-container .momo-route-casing,
+  .map-canvas-container .momo-route-line {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 

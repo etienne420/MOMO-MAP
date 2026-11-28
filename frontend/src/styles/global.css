@@ -11,8 +11,29 @@ html, body {
   font-family: var(--font-family-base);
   color: var(--color-text-body);
   background-color: var(--color-bg-page);
+  overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  html, body, #root {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
 }
 
 html {
@@ -49,4 +70,145 @@ input {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Text & element reveal animation (blur + slide up) */
+@keyframes reveal-up {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.auth-header,
+.login-card__header > *,
+.login-form > *,
+.auth-hero-copy > *,
+.auth-hero-badge,
+.map-page-sidebar__logo,
+.map-page-sidebar__nav > *,
+.map-page-dev-btn,
+.route-card__inputs > *,
+.route-card__swap-btn,
+.route-card__status,
+.amenities-card__list > *,
+.amenities-mobile-grid > *,
+.mobile-toolbar__group > *,
+.momo-zoom-stage-text > *,
+.momo-zoom-quick-actions > *,
+.shop-page__header > *,
+.shop-tabs > *,
+.shop-section > h2,
+.shop-grid > *,
+.settings-page__header > *,
+.settings-section > *,
+.dev-modal-card__header {
+  animation: 0.8s cubic-bezier(0.16, 1, 0.3, 1) both reveal-up;
+}
+
+/* Staggered entrance delays */
+.login-card__header > :nth-child(1),
+.login-form > :nth-child(1),
+.auth-hero-copy > :nth-child(1),
+.route-card__inputs > :nth-child(1),
+.amenities-card__list > :nth-child(1),
+.amenities-mobile-grid > :nth-child(1),
+.mobile-toolbar__group > :nth-child(1),
+.map-page-sidebar__nav > :nth-child(1),
+.shop-page__header > :nth-child(1),
+.shop-tabs > :nth-child(1),
+.shop-grid > :nth-child(1),
+.settings-page__header > :nth-child(1),
+.settings-section > :nth-child(1) {
+  animation-delay: 0.06s;
+}
+
+.login-card__header > :nth-child(2),
+.login-form > :nth-child(2),
+.auth-hero-copy > :nth-child(2),
+.route-card__inputs > :nth-child(2),
+.amenities-card__list > :nth-child(2),
+.amenities-mobile-grid > :nth-child(2),
+.mobile-toolbar__group > :nth-child(2),
+.map-page-sidebar__nav > :nth-child(2),
+.shop-page__header > :nth-child(2),
+.shop-tabs > :nth-child(2),
+.shop-grid > :nth-child(2),
+.settings-page__header > :nth-child(2),
+.settings-section > :nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.login-form > :nth-child(3),
+.auth-hero-copy > :nth-child(3),
+.amenities-card__list > :nth-child(3),
+.amenities-mobile-grid > :nth-child(3),
+.shop-page__header > :nth-child(3),
+.shop-tabs > :nth-child(3),
+.shop-grid > :nth-child(3),
+.settings-section > :nth-child(3) {
+  animation-delay: 0.18s;
+}
+
+.login-form > :nth-child(4),
+.amenities-card__list > :nth-child(4),
+.amenities-mobile-grid > :nth-child(4),
+.shop-grid > :nth-child(4),
+.settings-section > :nth-child(4) {
+  animation-delay: 0.24s;
+}
+
+.login-form > :nth-child(5),
+.amenities-card__list > :nth-child(5),
+.amenities-mobile-grid > :nth-child(5),
+.shop-grid > :nth-child(5),
+.settings-section > :nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.login-form > :nth-child(6),
+.amenities-card__list > :nth-child(6),
+.amenities-mobile-grid > :nth-child(6),
+.shop-grid > :nth-child(6),
+.settings-section > :nth-child(6) {
+  animation-delay: 0.36s;
+}
+
+.shop-grid > :nth-child(n + 7),
+.settings-section > :nth-child(n + 7) {
+  animation-delay: 0.42s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-header,
+  .login-card__header > *,
+  .login-form > *,
+  .auth-hero-copy > *,
+  .auth-hero-badge,
+  .map-page-sidebar__logo,
+  .map-page-sidebar__nav > *,
+  .map-page-dev-btn,
+  .route-card__inputs > *,
+  .route-card__swap-btn,
+  .route-card__status,
+  .amenities-card__list > *,
+  .amenities-mobile-grid > *,
+  .mobile-toolbar__group > *,
+  .momo-zoom-stage-text > *,
+  .momo-zoom-quick-actions > *,
+  .shop-page__header > *,
+  .shop-tabs > *,
+  .shop-section > h2,
+  .shop-grid > *,
+  .settings-page__header > *,
+  .settings-section > *,
+  .dev-modal-card__header {
+    animation: none !important;
+  }
 }

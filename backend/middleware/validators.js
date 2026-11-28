@@ -204,6 +204,18 @@ export const validateSettingsUpdate = [
     .optional()
     .isBoolean()
     .withMessage("devMode doit être un booléen."),
+  body("settings.devViewPath")
+    .optional()
+    .isBoolean()
+    .withMessage("devViewPath doit être un booléen."),
+  body("settings.devViewDoors")
+    .optional()
+    .isBoolean()
+    .withMessage("devViewDoors doit être un booléen."),
+  body("settings.devViewNames")
+    .optional()
+    .isBoolean()
+    .withMessage("devViewNames doit être un booléen."),
   handleValidationErrors,
 ];
 
