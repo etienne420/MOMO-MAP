@@ -320,6 +320,7 @@ export default function MapCanvas({
   selectedRoomId = null,
   selectedPinId = null,
   onSelectRoom = null,
+  onExploreStart = null,
   isPickingRoom = false,
   showRoomNames = true,
   showPins = true,
@@ -391,6 +392,10 @@ export default function MapCanvas({
   useEffect(() => {
     isPickingRoomRef.current = isPickingRoom
   }, [isPickingRoom])
+  const onExploreStartRef = useRef(onExploreStart)
+  useEffect(() => {
+    onExploreStartRef.current = onExploreStart
+  }, [onExploreStart])
   const currentPanRef = useRef({ x: 0, y: 0 })
   const currentZoomRef = useRef(0.35)
   const targetPanRef = useRef({ x: 0, y: 0 })
@@ -981,6 +986,7 @@ export default function MapCanvas({
         dragMovedRef.current = true
         isDraggingRef.current = true
         setIsDragging(true)
+        onExploreStartRef.current?.()
       }
       const candidatePan = {
         x: e.clientX - dragStartRef.current.x,
@@ -1132,6 +1138,7 @@ export default function MapCanvas({
       dragMovedRef.current = true
       isDraggingRef.current = false
       setIsDragging(false)
+      onExploreStartRef.current?.()
       const rect = containerRef.current?.getBoundingClientRect()
       const offsetX = rect ? rect.left : 0
       const offsetY = rect ? rect.top : 0
@@ -1160,6 +1167,7 @@ export default function MapCanvas({
         dragMovedRef.current = true
         isDraggingRef.current = true
         setIsDragging(true)
+        onExploreStartRef.current?.()
       }
       const candidatePan = {
         x: touch.clientX - dragStartRef.current.x,
@@ -1256,6 +1264,7 @@ export default function MapCanvas({
 
     const handleWheel = (e) => {
       e.preventDefault()
+      onExploreStartRef.current?.()
       const rect = el.getBoundingClientRect()
       const cursorX = e.clientX - rect.left
       const cursorY = e.clientY - rect.top

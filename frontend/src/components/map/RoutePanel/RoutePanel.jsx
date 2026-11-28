@@ -13,6 +13,7 @@ function CursorPickIcon() {
 export default function RoutePanel({
   onSelectRoom = null,
   onRouteChange = null,
+  onSearchStart = null,
   pickingField = null,
   onTogglePick = null,
   pickedRoom = null,
@@ -54,6 +55,7 @@ export default function RoutePanel({
 
   const handleKeyDown = (e, val) => {
     if (e.key !== 'Enter') return
+    onSearchStart?.()
     if (depart.trim() && destination.trim()) {
       computeRoute(depart, destination)
     } else if (val.trim() && onSelectRoom) {
@@ -93,6 +95,7 @@ export default function RoutePanel({
             className="route-card__input"
             placeholder="Départ (A-3133)"
             value={depart}
+            onFocus={() => onSearchStart?.()}
             onChange={handleChange(setDepart)}
             onKeyDown={(e) => handleKeyDown(e, depart)}
             aria-label="Point de départ"
@@ -116,6 +119,7 @@ export default function RoutePanel({
             className="route-card__input"
             placeholder="Destination (B-3300)"
             value={destination}
+            onFocus={() => onSearchStart?.()}
             onChange={handleChange(setDestination)}
             onKeyDown={(e) => handleKeyDown(e, destination)}
             aria-label="Destination"

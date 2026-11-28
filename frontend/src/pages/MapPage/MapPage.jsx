@@ -76,14 +76,10 @@ export default function MapPage() {
       })
     }
     measure()
-    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
-    if (observer) {
-      if (mobileTopRef.current) observer.observe(mobileTopRef.current)
-      if (mobileBottomRef.current) observer.observe(mobileBottomRef.current)
-    }
+    const settleTimer = window.setTimeout(measure, 480)
     window.addEventListener('resize', measure)
     return () => {
-      observer?.disconnect()
+      window.clearTimeout(settleTimer)
       window.removeEventListener('resize', measure)
     }
   }, [isMobile, isSheetOpen])
@@ -200,13 +196,18 @@ export default function MapPage() {
   const handleMapRoomSelect = useCallback(
     (roomId) => {
       setSelectedRoomId(roomId)
+      if (isMobile) setIsSheetOpen(false)
       if (pickingField) {
         setPickedRoom({ field: pickingField, roomId, seq: Date.now() })
         setPickingField(null)
       }
     },
-    [pickingField],
+    [pickingField, isMobile],
   )
+
+  const handleExploreStart = useCallback(() => {
+    setIsSheetOpen(false)
+  }, [])
 
   const handleTogglePick = useCallback((field) => {
     setPickingField((prev) => (prev === field ? null : field))
@@ -236,6 +237,7 @@ export default function MapPage() {
         selectedRoomId={selectedRoomId}
         selectedPinId={selectedPinId}
         onSelectRoom={handleMapRoomSelect}
+        onExploreStart={isMobile ? handleExploreStart : undefined}
         isPickingRoom={Boolean(pickingField)}
         roomOverrides={vectorOverrides.roomOverrides}
         pinOverrides={vectorOverrides.pinOverrides}
@@ -265,8 +267,15 @@ export default function MapPage() {
           {/* Haut : espace supérieur fondu + recherche d'itinéraire */}
           <header ref={mobileTopRef} className="map-mobile-top">
             <RoutePanel
-              onSelectRoom={setSelectedRoomId}
-              onRouteChange={setRoute}
+              onSelectRoom={(rid) => {
+                setSelectedRoomId(rid)
+                setIsSheetOpen(false)
+              }}
+              onRouteChange={(nextRoute) => {
+                setRoute(nextRoute)
+                if (nextRoute) setIsSheetOpen(false)
+              }}
+              onSearchStart={() => setIsSheetOpen(false)}
               pickingField={pickingField}
               onTogglePick={handleTogglePick}
               pickedRoom={pickedRoom}
@@ -300,12 +309,18 @@ export default function MapPage() {
               >
                 <span className="map-mobile-sheet__grabber" aria-hidden="true" />
               </button>
-              <div id="map-mobile-sheet-body" className="map-mobile-sheet__body" hidden={!isSheetOpen}>
-                <AmenitiesPanel
-                  layout="grid"
-                  activeAmenityId={activeAmenityId}
-                  onSelectAmenity={setActiveAmenityId}
-                />
+              <div
+                id="map-mobile-sheet-body"
+                className="map-mobile-sheet__body"
+                aria-hidden={!isSheetOpen}
+              >
+                <div className="map-mobile-sheet__inner">
+                  <AmenitiesPanel
+                    layout="grid"
+                    activeAmenityId={activeAmenityId}
+                    onSelectAmenity={setActiveAmenityId}
+                  />
+                </div>
               </div>
             </section>
           </div>
