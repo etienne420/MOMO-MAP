@@ -21,6 +21,7 @@ export default function RoutePanel({
   const [destination, setDestination] = useState('')
   const [status, setStatus] = useState(null) // { type: 'ok' | 'error', text }
   const [hasRoute, setHasRoute] = useState(false)
+  const [swapCount, setSwapCount] = useState(0)
 
   // Calcule et affiche le trajet si les deux champs sont remplis
   const computeRoute = (from, to) => {
@@ -43,6 +44,7 @@ export default function RoutePanel({
   }
 
   const handleSwap = () => {
+    setSwapCount((c) => c + 1)
     setDepart(destination)
     setDestination(depart)
     if (hasRoute && depart.trim() && destination.trim()) {
@@ -142,6 +144,7 @@ export default function RoutePanel({
       >
         <svg
           className="route-card__swap-icon"
+          style={{ transform: `rotate(${swapCount * 180}deg)` }}
           width="20"
           height="28"
           viewBox="0 0 20 28"
