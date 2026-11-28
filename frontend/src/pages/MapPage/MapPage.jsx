@@ -5,7 +5,11 @@ import RoutePanel from '../../components/map/RoutePanel/RoutePanel'
 import AmenitiesPanel from '../../components/map/AmenitiesPanel/AmenitiesPanel'
 import MapCanvas from '../../components/map/MapCanvas/MapCanvas'
 import DevControlModal from '../../components/map/DevControlModal/DevControlModal'
-import MobileToolbar from '../../components/map/MobileToolbar/MobileToolbar'
+import MobileToolbar, {
+  GearIcon,
+  ShopIcon,
+  UserIcon,
+} from '../../components/map/MobileToolbar/MobileToolbar'
 import {
   getCurrentUserId,
   fetchCurrentUser,
@@ -287,11 +291,32 @@ export default function MapPage() {
         <aside className="map-page-sidebar" aria-label="Navigation et commodités">
           <AuthHeader className="map-page-sidebar__logo" showSubtitle={false} />
           <div className="map-page-sidebar__nav">
-            <button type="button" className="map-page-nav-btn" onClick={() => navigate('/shop')}>
-              Boutique
+            <button
+              type="button"
+              className="map-page-nav-btn"
+              onClick={() => navigate('/shop')}
+              aria-label="Boutique"
+              title="Boutique"
+            >
+              <ShopIcon />
             </button>
-            <button type="button" className="map-page-nav-btn" onClick={() => navigate('/settings')}>
-              Paramètres
+            <button
+              type="button"
+              className="map-page-nav-btn"
+              onClick={() => navigate('/settings')}
+              aria-label="Paramètres"
+              title="Paramètres"
+            >
+              <GearIcon />
+            </button>
+            <button
+              type="button"
+              className="map-page-nav-btn map-page-nav-btn--avatar"
+              onClick={() => navigate('/settings')}
+              aria-label="Mon profil"
+              title="Mon profil"
+            >
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : <UserIcon />}
             </button>
           </div>
           <RoutePanel onSelectRoom={setSelectedRoomId} onRouteChange={setRoute} />

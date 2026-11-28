@@ -13,7 +13,7 @@ function LocateIcon() {
   )
 }
 
-function GearIcon() {
+export function GearIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M13.6 2.5h-3.2l-.5 2.6a7.6 7.6 0 0 0-1.9 1.1l-2.5-.9-1.6 2.8 2 1.7a7.7 7.7 0 0 0 0 2.2l-2 1.7 1.6 2.8 2.5-.9c.6.5 1.2.8 1.9 1.1l.5 2.6h3.2l.5-2.6c.7-.3 1.3-.6 1.9-1.1l2.5.9 1.6-2.8-2-1.7a7.7 7.7 0 0 0 0-2.2l2-1.7-1.6-2.8-2.5.9a7.6 7.6 0 0 0-1.9-1.1l-.5-2.6ZM12 8.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8Z" />
@@ -21,7 +21,7 @@ function GearIcon() {
   )
 }
 
-function ShopIcon() {
+export function ShopIcon() {
   return (
     <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
@@ -31,7 +31,7 @@ function ShopIcon() {
   )
 }
 
-function UserIcon() {
+export function UserIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
