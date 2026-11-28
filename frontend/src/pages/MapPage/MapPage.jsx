@@ -32,6 +32,8 @@ export default function MapPage() {
   const [activeAmenityId, setActiveAmenityId] = useState(null)
   const [selectedRoomId, setSelectedRoomId] = useState(null)
   const [selectedPinId, setSelectedPinId] = useState(null)
+  const [pickingField, setPickingField] = useState(null)
+  const [pickedRoom, setPickedRoom] = useState(null)
   const [route, setRoute] = useState(null)
   const [theme, setTheme] = useState(() => getCachedTheme())
   const [reducedMotion, setReducedMotion] = useState(false)
@@ -195,6 +197,21 @@ export default function MapPage() {
     }
   }, [])
 
+  const handleMapRoomSelect = useCallback(
+    (roomId) => {
+      setSelectedRoomId(roomId)
+      if (pickingField) {
+        setPickedRoom({ field: pickingField, roomId, seq: Date.now() })
+        setPickingField(null)
+      }
+    },
+    [pickingField],
+  )
+
+  const handleTogglePick = useCallback((field) => {
+    setPickingField((prev) => (prev === field ? null : field))
+  }, [])
+
   const devToggle = isDevMode && (
     <button
       type="button"
@@ -207,7 +224,7 @@ export default function MapPage() {
   )
 
   return (
-    <div className={`map-page-screen ${isMobile ? 'is-mobile' : ''}`}>
+    <div className={`map-page-screen ${isMobile ? 'is-mobile' : ''} ${pickingField ? 'is-picking-room' : ''}`}>
       {/* Carte interactive plein écran */}
       <MapCanvas
         theme={theme}
@@ -218,7 +235,8 @@ export default function MapPage() {
         activeAmenityId={activeAmenityId}
         selectedRoomId={selectedRoomId}
         selectedPinId={selectedPinId}
-        onSelectRoom={setSelectedRoomId}
+        onSelectRoom={handleMapRoomSelect}
+        isPickingRoom={Boolean(pickingField)}
         roomOverrides={vectorOverrides.roomOverrides}
         pinOverrides={vectorOverrides.pinOverrides}
         route={route}
@@ -246,7 +264,13 @@ export default function MapPage() {
         <>
           {/* Haut : espace supérieur fondu + recherche d'itinéraire */}
           <header ref={mobileTopRef} className="map-mobile-top">
-            <RoutePanel onSelectRoom={setSelectedRoomId} onRouteChange={setRoute} />
+            <RoutePanel
+              onSelectRoom={setSelectedRoomId}
+              onRouteChange={setRoute}
+              pickingField={pickingField}
+              onTogglePick={handleTogglePick}
+              pickedRoom={pickedRoom}
+            />
           </header>
 
           {/* Bas : barre d'outils + panneau des commodités */}
@@ -319,7 +343,13 @@ export default function MapPage() {
               {avatarUrl ? <img src={avatarUrl} alt="" /> : <UserIcon />}
             </button>
           </div>
-          <RoutePanel onSelectRoom={setSelectedRoomId} onRouteChange={setRoute} />
+          <RoutePanel
+            onSelectRoom={setSelectedRoomId}
+            onRouteChange={setRoute}
+            pickingField={pickingField}
+            onTogglePick={handleTogglePick}
+            pickedRoom={pickedRoom}
+          />
           <AmenitiesPanel
             activeAmenityId={activeAmenityId}
             onSelectAmenity={setActiveAmenityId}

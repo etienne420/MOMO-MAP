@@ -177,6 +177,29 @@
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: momo-route-draw 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes momo-route-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes momo-pin-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .momo-route-casing {
@@ -185,7 +208,7 @@
 }
 
 .momo-route-line {
-  stroke: var(--color-primary, #1e6b37);
+  stroke: #379FD8;
   stroke-width: 4.5px;
 }
 
@@ -194,15 +217,17 @@
   stroke-width: 2px;
 }
 
-/* Départ : point bleu ; arrivée : épingle noire */
+/* Départ : point bleu ; arrivée : épingle verte */
 .momo-route-marker--start {
-  fill: #4f7fe0;
+  fill: #379FD8;
 }
 
 .momo-route-marker--end {
-  fill: var(--color-text-title, #111827);
+  fill: #44B949;
   stroke: var(--map-ground, #ffffff);
   stroke-width: 1.4px;
+  transform-origin: 0 0;
+  animation: momo-pin-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both;
 }
 
 /* Highlight Polygon for Hovered / Selected Room */
@@ -478,8 +503,7 @@
 
 /* Thème animé : le local sélectionné et l'arrivée du trajet « respirent » doucement.
    Seuls de petits éléments sont animés pour ne pas redessiner toute la carte. */
-.map-canvas-container.is-animated .momo-room-highlight.is-selected,
-.map-canvas-container.is-animated .momo-route-marker--end {
+.map-canvas-container.is-animated .momo-room-highlight.is-selected {
   animation: momo-theme-pulse 1.8s ease-in-out infinite;
 }
 
@@ -509,6 +533,12 @@
   animation: none;
 }
 
+.map-canvas-container.is-low-power .momo-route-casing,
+.map-canvas-container.is-low-power .momo-route-line {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
 /* Le contour des étiquettes est coûteux à dessiner : plus fin en mode économie */
 .map-canvas-container.is-low-power .momo-room-label-text {
   stroke-width: 1.2px;
@@ -524,6 +554,12 @@
   .map-canvas-container .momo-room-highlight,
   .map-canvas-container .momo-route-marker {
     animation: none;
+  }
+
+  .map-canvas-container .momo-route-casing,
+  .map-canvas-container .momo-route-line {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 

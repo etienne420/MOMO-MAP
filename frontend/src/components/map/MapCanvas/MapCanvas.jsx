@@ -52,6 +52,28 @@ function getRoomById(id) {
   return ROOMS_BY_ID.get(id) || ROOMS_BY_LOWER_ID.get(id.toLowerCase()) || null
 }
 
+function pointInPolygon(x, y, polygon) {
+  if (!polygon || polygon.length < 3) return false
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i]
+    const [xj, yj] = polygon[j]
+    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+function findRoomAtWorldPoint(wx, wy) {
+  for (const room of momoRoomsData.rooms) {
+    if (!room.id || room.type === 'wall' || !room.polygon) continue
+    if (pointInPolygon(wx, wy, room.polygon)) {
+      return room
+    }
+  }
+  return null
+}
+
 // Extract inner SVG contents
 function extractInnerSvg(rawSvg) {
   const match = rawSvg.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i)
@@ -229,17 +251,19 @@ const RouteLayer = React.memo(function RouteLayer({ route }) {
   const pts = route.points.map((p) => `${p.x},${p.y}`).join(' ')
   const start = route.points[0]
   const end = route.points[route.points.length - 1]
+  const routeKey = `${start.x},${start.y}-${end.x},${end.y}-${route.points.length}`
   return (
-    <g id="momo-route-layer" pointerEvents="none">
-      <polyline points={pts} className="momo-route-casing" />
-      <polyline points={pts} className="momo-route-line" />
+    <g id="momo-route-layer" key={routeKey} pointerEvents="none">
+      <polyline points={pts} pathLength="1" className="momo-route-line" />
       <circle cx={start.x} cy={start.y} r="6" className="momo-route-marker momo-route-marker--start" />
       {/* Épingle d'arrivée : la pointe touche la porte du local de destination */}
-      <path
-        transform={`translate(${end.x}, ${end.y})`}
-        d="M0 0 C-1.6 -5.2 -7.5 -9.6 -7.5 -15.5 A7.5 7.5 0 1 1 7.5 -15.5 C7.5 -9.6 1.6 -5.2 0 0 Z"
-        className="momo-route-marker momo-route-marker--end"
-      />
+      <g transform={`translate(${end.x}, ${end.y})`}>
+        <path
+          d="M0 0 C-3 -5.5 -7.5 -10.5 -7.5 -14.8 A7.5 7.5 0 1 1 7.5 -14.8 C7.5 -10.5 3 -5.5 0 0 Z M0 -6.4 C-1.2 -8.9 -3.0 -11.7 -3.0 -14.6 A3.0 3.0 0 1 1 3.0 -14.6 C3.0 -11.7 1.2 -8.9 0 -6.4 Z"
+          fillRule="evenodd"
+          className="momo-route-marker momo-route-marker--end"
+        />
+      </g>
     </g>
   )
 })
@@ -296,6 +320,7 @@ export default function MapCanvas({
   selectedRoomId = null,
   selectedPinId = null,
   onSelectRoom = null,
+  isPickingRoom = false,
   showRoomNames = true,
   showPins = true,
   showCorridorPath = true,
@@ -357,8 +382,15 @@ export default function MapCanvas({
   }, [pinOverrides])
 
   const hasInitializedRef = useRef(false)
+  const isPointerDownRef = useRef(false)
   const isDraggingRef = useRef(false)
+  const dragMovedRef = useRef(false)
+  const pointerDownPosRef = useRef({ x: 0, y: 0 })
   const dragStartRef = useRef({ x: 0, y: 0 })
+  const isPickingRoomRef = useRef(isPickingRoom)
+  useEffect(() => {
+    isPickingRoomRef.current = isPickingRoom
+  }, [isPickingRoom])
   const currentPanRef = useRef({ x: 0, y: 0 })
   const currentZoomRef = useRef(0.35)
   const targetPanRef = useRef({ x: 0, y: 0 })
@@ -928,8 +960,9 @@ export default function MapCanvas({
   const handleMouseDown = (e) => {
     if (e.button !== 0) return // Only primary click
     stopCameraAnimation()
-    isDraggingRef.current = true
-    setIsDragging(true)
+    isPointerDownRef.current = true
+    dragMovedRef.current = false
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY }
     dragStartRef.current = {
       x: e.clientX - currentPanRef.current.x,
       y: e.clientY - currentPanRef.current.y,
@@ -938,7 +971,17 @@ export default function MapCanvas({
 
   const handleMouseMove = useCallback(
     (e) => {
-      if (!isDraggingRef.current) return
+      if (!isPointerDownRef.current) return
+      if (!isDraggingRef.current) {
+        const dist = Math.hypot(
+          e.clientX - pointerDownPosRef.current.x,
+          e.clientY - pointerDownPosRef.current.y,
+        )
+        if (dist <= 4) return
+        dragMovedRef.current = true
+        isDraggingRef.current = true
+        setIsDragging(true)
+      }
       const candidatePan = {
         x: e.clientX - dragStartRef.current.x,
         y: e.clientY - dragStartRef.current.y,
@@ -963,6 +1006,7 @@ export default function MapCanvas({
   )
 
   const handleMouseUp = useCallback(() => {
+    isPointerDownRef.current = false
     if (isDraggingRef.current) {
       isDraggingRef.current = false
       setIsDragging(false)
@@ -1011,8 +1055,11 @@ export default function MapCanvas({
 
   const handleSvgClick = useCallback(
     (e) => {
-      if (isDraggingRef.current) return
-      if (!isRoomsVisibleRef.current) return
+      if (dragMovedRef.current) {
+        dragMovedRef.current = false
+        return
+      }
+      if (!isRoomsVisibleRef.current && !isPickingRoomRef.current) return
 
       const pinTarget = e.target.closest('[data-pin-id]')
       if (pinTarget) {
@@ -1048,6 +1095,22 @@ export default function MapCanvas({
           return
         }
       }
+
+      // Fallback: hit-test room polygons directly in world coordinates
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (rect && currentZoomRef.current > 0) {
+        const wx = (e.clientX - rect.left - currentPanRef.current.x) / currentZoomRef.current
+        const wy = (e.clientY - rect.top - currentPanRef.current.y) / currentZoomRef.current
+        const hitRoom = findRoomAtWorldPoint(wx, wy)
+        if (hitRoom) {
+          setFocusedRoomId(hitRoom.id)
+          onSelectRoom?.(hitRoom.id)
+          const curRelZoom = minZoomRef.current > 0 ? currentZoomRef.current / minZoomRef.current : 1
+          if (curRelZoom < roomNamesThreshold * 1.3) {
+            zoomToWorldPoint(hitRoom.cx, hitRoom.cy, Math.max(roomNamesThreshold * 1.4, 4.8))
+          }
+        }
+      }
     },
     [roomNamesThreshold, onSelectRoom, zoomToWorldPoint]
   )
@@ -1056,14 +1119,17 @@ export default function MapCanvas({
   const handleTouchStart = (e) => {
     stopCameraAnimation()
     if (e.touches.length === 1) {
-      isDraggingRef.current = true
-      setIsDragging(true)
+      isPointerDownRef.current = true
+      dragMovedRef.current = false
       const touch = e.touches[0]
+      pointerDownPosRef.current = { x: touch.clientX, y: touch.clientY }
       dragStartRef.current = {
         x: touch.clientX - currentPanRef.current.x,
         y: touch.clientY - currentPanRef.current.y,
       }
     } else if (e.touches.length === 2) {
+      isPointerDownRef.current = false
+      dragMovedRef.current = true
       isDraggingRef.current = false
       setIsDragging(false)
       const rect = containerRef.current?.getBoundingClientRect()
@@ -1083,8 +1149,18 @@ export default function MapCanvas({
   }
 
   const handleTouchMove = (e) => {
-    if (e.touches.length === 1 && isDraggingRef.current) {
+    if (e.touches.length === 1 && isPointerDownRef.current) {
       const touch = e.touches[0]
+      if (!isDraggingRef.current) {
+        const dist = Math.hypot(
+          touch.clientX - pointerDownPosRef.current.x,
+          touch.clientY - pointerDownPosRef.current.y,
+        )
+        if (dist <= 6) return
+        dragMovedRef.current = true
+        isDraggingRef.current = true
+        setIsDragging(true)
+      }
       const candidatePan = {
         x: touch.clientX - dragStartRef.current.x,
         y: touch.clientY - dragStartRef.current.y,
@@ -1162,6 +1238,7 @@ export default function MapCanvas({
       }
     }
     if (e.touches.length === 0) {
+      isPointerDownRef.current = false
       setMoving(false)
       if (isDraggingRef.current) {
         isDraggingRef.current = false

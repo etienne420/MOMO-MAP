@@ -26,25 +26,60 @@
   min-width: 0;
 }
 
+.route-card__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
 .route-card__input {
   width: 100%;
   height: 40px;
-  padding: 0 14px;
+  padding: 0 34px 0 12px;
   box-sizing: border-box;
   background-color: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--color-border-soft, #e5e7eb);
   border-radius: 12px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--color-text-title, #18181b);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.route-card__pick-btn {
+  position: absolute;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.route-card__pick-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--color-text-title, #18181b);
+}
+
+.route-card__pick-btn.is-active {
+  background: var(--color-primary, #1e6b37);
+  color: var(--color-on-primary, #ffffff);
+}
+
 .route-card__input::placeholder {
   color: var(--color-text-title, #18181b);
-  opacity: 1;
+  opacity: 0.72;
+  font-size: 12.5px;
   font-weight: 400;
 }
 

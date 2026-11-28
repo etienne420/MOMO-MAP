@@ -17,6 +17,10 @@ html.is-zoom-locked body {
   padding-left: 32px;
 }
 
+.map-page-screen.is-picking-room .map-canvas-container {
+  cursor: crosshair;
+}
+
 /* Floating Sidebar on the Left */
 .map-page-sidebar {
   position: relative;
